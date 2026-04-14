@@ -1152,7 +1152,7 @@ const SHEETS_KEY = 'mispagos_sheets_url';
 const BIOMETRIC_KEY = 'mispagos_biometric';
 
 // ⬇️ PEGA AQUÍ LA URL DEL NUEVO DEPLOYMENT (después del paso 4)
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzmMnID6QivmJmzb8CJUQUjq-cQUoyq_tjN-WtpmPaq3UOkDHARudnWz688KfIA0Upq1w/exec';
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxVHFiXbsgZNyaWXgXWQddMSPI_mffjsSQQzbqXGj8gjtrG4qP58ElN9XzBFlGhZdAwKw/exec';
 
 const DEFAULT_PAYMENTS = [
   { id:1, icon:'💧', name:'Agua (Interagua)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'interagua.com.ec', paid_date:null, file:null, fileName:null },
@@ -1284,31 +1284,11 @@ function syncToCloud() {
     delete c.estadoFiles; delete c.comprobanteFiles;
     return c;
   });
-
-  // Usar iframe + form para evitar CORS (método más confiable con Apps Script)
-  const iframeName = 'mp_frame_' + Date.now();
-  const iframe = document.createElement('iframe');
-  iframe.name = iframeName;
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
-
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = CLOUD_URL;
-  form.target = iframeName;
-
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'data';
-  input.value = JSON.stringify(cloudData);
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-
-  setTimeout(() => {
-    try { form.remove(); iframe.remove(); } catch(e) {}
-    showSyncStatus('✅ Guardado', 'ok');
-  }, 3000);
+  const dataStr = encodeURIComponent(JSON.stringify(cloudData));
+  const saveUrl = CLOUD_URL + '?data=' + dataStr;
+  fetchJsonp(saveUrl)
+    .then(() => showSyncStatus('✅ Guardado', 'ok'))
+    .catch(() => showSyncStatus('⚠️ Error al guardar', 'error'));
 }
 
 // ===================== VIEWS =====================

@@ -567,6 +567,51 @@ header {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 
+/* HIST TABS */
+.hist-tabs { display: flex; gap: 8px; }
+.hist-tab {
+  flex: 1; padding: 10px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); font-family: 'Syne',sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.hist-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* MONTH LIST */
+.month-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+.month-row {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; transition: background 0.15s;
+}
+.month-row:active { background: var(--surface2); }
+.month-icon { font-size: 28px; flex-shrink: 0; }
+.month-info { flex: 1; }
+.month-label { font-family: 'Syne',sans-serif; font-size: 15px; font-weight: 800; }
+.month-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.month-total { font-family: 'Syne',sans-serif; font-size: 15px; font-weight: 800; color: var(--accent); }
+.month-arrow { color: var(--muted); font-size: 20px; }
+
+/* MONTH DETAIL */
+.month-payment-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 12px;
+}
+.month-payment-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.month-payment-icon { font-size: 24px; }
+.month-payment-name { font-family: 'Syne',sans-serif; font-size: 14px; font-weight: 700; }
+.month-payment-amount { font-family: 'Syne',sans-serif; font-size: 13px; color: var(--accent); }
+.month-payment-meta { font-size: 11px; color: var(--muted); }
+.month-files-wrap { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.month-file-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: background 0.15s;
+  width: 100%; text-align: left;
+}
+.month-file-btn:hover { background: var(--surface3); }
+.month-file-section-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 8px; }
+
 /* MULTI FILE UPLOAD */
 .multi-upload-area {
   border: 2px dashed var(--border); border-radius: 12px;
@@ -734,9 +779,16 @@ header {
   <div class="view" id="view-history">
     <div class="page-header">
       <h2>📋 Historial</h2>
-      <p>Por servicio</p>
+      <p>Consulta pagos y archivos por mes o servicio</p>
     </div>
-    <div class="service-list" id="service-list"></div>
+    <div style="padding:0 20px 16px;">
+      <div class="hist-tabs">
+        <button class="hist-tab active" id="htab-month" onclick="switchHistTab('month')">📅 Por Mes</button>
+        <button class="hist-tab" id="htab-service" onclick="switchHistTab('service')">🗂️ Por Servicio</button>
+      </div>
+    </div>
+    <div id="hist-month-list"></div>
+    <div class="service-list" id="service-list" style="display:none"></div>
   </div>
 
   <!-- ===== AJUSTES VIEW ===== -->
@@ -961,6 +1013,16 @@ header {
     <div class="modal-title" id="srv-history-title"></div>
     <div id="srv-history-content"></div>
     <button class="btn-action" style="width:100%;margin-top:12px;" onclick="closeSrvHistory()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ===== MONTH HISTORY MODAL ===== -->
+<div class="modal-overlay" id="month-history-modal">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="month-history-title"></div>
+    <div id="month-history-content"></div>
+    <button class="btn-action" style="width:100%;margin-top:12px;" onclick="closeMonthHistory()">Cerrar</button>
   </div>
 </div>
 
@@ -1315,19 +1377,83 @@ function renderCharts() {
 }
 
 // ===================== HISTORY =====================
+let currentHistTab = 'month';
+
+function switchHistTab(tab) {
+  currentHistTab = tab;
+  document.getElementById('htab-month').classList.toggle('active', tab==='month');
+  document.getElementById('htab-service').classList.toggle('active', tab==='service');
+  document.getElementById('hist-month-list').style.display = tab==='month' ? 'block' : 'none';
+  document.getElementById('service-list').style.display = tab==='service' ? 'flex' : 'none';
+  if (tab==='month') renderHistoryByMonth();
+  else renderHistoryByService();
+}
+
 function renderHistory() {
-  // Group by service name
-  const groups = {};
-  payments.forEach(p=>{
-    if (!groups[p.id]) groups[p.id] = p;
+  if (currentHistTab==='month') renderHistoryByMonth();
+  else renderHistoryByService();
+}
+
+function renderHistoryByMonth() {
+  const el = document.getElementById('hist-month-list');
+  document.getElementById('hist-month-list').style.display = 'block';
+  document.getElementById('service-list').style.display = 'none';
+
+  if (payments.length===0) {
+    el.innerHTML = '<div class="no-data">Sin pagos registrados</div>';
+    return;
+  }
+
+  // Agrupar por mes usando due o paid_date
+  const months = {};
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  payments.forEach(p => {
+    const dateStr = p.paid_date || p.due || null;
+    if (!dateStr) {
+      const key = 'sin-fecha';
+      if (!months[key]) months[key] = { label: 'Sin fecha', payments: [], total: 0, files: 0 };
+      months[key].payments.push(p);
+      return;
+    }
+    const d = new Date(dateStr + 'T12:00:00');
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const label = MESES[d.getMonth()] + ' ' + d.getFullYear();
+    if (!months[key]) months[key] = { label, payments: [], total: 0, files: 0 };
+    months[key].payments.push(p);
+    if (p.amount) months[key].total += Number(p.amount);
+    const eFiles = (p.estadoFiles||[]).length;
+    const cFiles = (p.comprobanteFiles||[]).length + ((!p.comprobanteFiles?.length && p.file)?1:0);
+    months[key].files += eFiles + cFiles;
   });
 
+  // Ordenar meses de más reciente a más antiguo
+  const sorted = Object.entries(months).sort((a,b)=>b[0].localeCompare(a[0]));
+
+  el.innerHTML = '<div class="month-list">' + sorted.map(([key, m]) => {
+    const n = m.payments.length;
+    const paid = m.payments.filter(p=>p.status==='pagado').length;
+    const hasFiles = m.files > 0;
+    return `<div class="month-row" onclick="openMonthHistory('${key}')">
+      <div class="month-icon">📅</div>
+      <div class="month-info">
+        <div class="month-label">${m.label}</div>
+        <div class="month-sub">${n} servicio${n!==1?'s':''} · ${paid} pagado${paid!==1?'s':''}${hasFiles?' · 📎 '+m.files+' archivo'+(m.files!==1?'s':''):''}</div>
+      </div>
+      ${m.total>0?`<div class="month-total">$${m.total.toFixed(2)}</div>`:''}
+      <div class="month-arrow">›</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderHistoryByService() {
   const el = document.getElementById('service-list');
+  document.getElementById('hist-month-list').style.display = 'none';
+  document.getElementById('service-list').style.display = 'flex';
+
   if (payments.length===0) {
     el.innerHTML = '<div class="no-data">Sin servicios registrados</div>';
     return;
   }
-
   el.innerHTML = payments.map(p=>{
     const totalPaid = p.paid_date ? (p.amount||0) : 0;
     const count = p.paid_date ? 1 : 0;
@@ -1340,6 +1466,87 @@ function renderHistory() {
       <div class="srv-total">${totalPaid>0?'$'+totalPaid.toFixed(2):'—'}</div>
     </div>`;
   }).join('');
+}
+
+function openMonthHistory(key) {
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const paymentsInMonth = payments.filter(p => {
+    if (key === 'sin-fecha') return !p.due && !p.paid_date;
+    const dateStr = p.paid_date || p.due;
+    if (!dateStr) return false;
+    const d = new Date(dateStr + 'T12:00:00');
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return k === key;
+  });
+
+  let label = 'Sin fecha';
+  if (key !== 'sin-fecha') {
+    const [y,m] = key.split('-');
+    label = MESES[parseInt(m)-1] + ' ' + y;
+  }
+
+  document.getElementById('month-history-title').textContent = '📅 ' + label;
+  const content = document.getElementById('month-history-content');
+  const statusLabels = {vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
+
+  if (paymentsInMonth.length===0) {
+    content.innerHTML = '<div class="no-data">Sin pagos en este mes</div>';
+  } else {
+    content.innerHTML = paymentsInMonth.map(p => {
+      const dateRef = p.paid_date || p.due;
+      const dateLabel = dateRef ? formatDate(dateRef) : 'Sin fecha';
+      const eFiles = p.estadoFiles || [];
+      const cFiles = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles : (p.file ? [{data:p.file,name:p.fileName||'Comprobante'}] : []);
+      const hasFiles = eFiles.length > 0 || cFiles.length > 0;
+
+      let filesHTML = '';
+      if (eFiles.length > 0) {
+        filesHTML += `<div class="month-file-section-label">📄 Estado de Cuenta / Planilla</div>`;
+        filesHTML += eFiles.map((f,i) => {
+          const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
+          return `<button class="month-file-btn" onclick="viewFileRaw('${encodeURIComponent(f.data)}','${f.name||'archivo'}')">
+            <span style="font-size:22px">${isImg?'🖼️':'📄'}</span>
+            <span style="flex:1;font-size:12px;font-weight:600;text-align:left;">${f.name||'Archivo '+(i+1)}</span>
+            <span style="color:var(--accent);font-size:12px;font-weight:700;">Ver →</span>
+          </button>`;
+        }).join('');
+      }
+      if (cFiles.length > 0) {
+        filesHTML += `<div class="month-file-section-label">🧾 Comprobante de Pago</div>`;
+        filesHTML += cFiles.map((f,i) => {
+          const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
+          return `<button class="month-file-btn" onclick="viewFileRaw(decodeURIComponent('${encodeURIComponent(f.data)}'),'${f.name||'comprobante'}')">
+            <span style="font-size:22px">${isImg?'🖼️':'📄'}</span>
+            <span style="flex:1;font-size:12px;font-weight:600;text-align:left;">${f.name||'Comprobante '+(i+1)}</span>
+            <span style="color:var(--accent);font-size:12px;font-weight:700;">Ver →</span>
+          </button>`;
+        }).join('');
+      }
+
+      return `<div class="month-payment-card">
+        <div class="month-payment-header">
+          <span class="month-payment-icon">${p.icon}</span>
+          <div style="flex:1;">
+            <div class="month-payment-name">${p.name}</div>
+            <div class="month-payment-meta">${p.category} · ${statusLabels[p.status]||p.status}</div>
+          </div>
+          <div class="month-payment-amount">${p.amount?'$'+Number(p.amount).toFixed(2):'—'}</div>
+        </div>
+        ${p.balance?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📊 Estado de cuenta: <strong style="color:var(--text)">$${Number(p.balance).toFixed(2)}</strong></div>`:''}
+        ${p.cutdate?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">✂️ Fecha de corte: <strong style="color:var(--text)">${formatDate(p.cutdate)}</strong></div>`:''}
+        ${p.due?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📆 Vencimiento: <strong style="color:var(--text)">${formatDate(p.due)}</strong></div>`:''}
+        ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📝 ${p.notes}</div>`:''}
+        ${hasFiles?`<div class="month-files-wrap">${filesHTML}</div>`:
+          '<div style="font-size:12px;color:var(--muted);margin-top:8px;">Sin archivos adjuntos</div>'}
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('month-history-modal').classList.add('open');
+}
+
+function closeMonthHistory() {
+  document.getElementById('month-history-modal').classList.remove('open');
 }
 
 function openSrvHistory(id) {
@@ -1896,7 +2103,7 @@ function showToast(msg) {
 }
 
 // ===================== CLOSE MODALS ON OVERLAY =====================
-['add-modal','detail-modal','srv-history-modal','sheets-modal','notif-modal','wa-modal'].forEach(id=>{
+['add-modal','detail-modal','srv-history-modal','month-history-modal','sheets-modal','notif-modal','wa-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){
     if (e.target===this) this.classList.remove('open');
   });

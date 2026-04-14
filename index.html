@@ -567,6 +567,37 @@ header {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 
+/* MULTI FILE UPLOAD */
+.multi-upload-area {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 14px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--surface2); margin-top: 8px;
+}
+.multi-upload-area:hover { border-color: var(--accent); background: rgba(124,106,247,0.06); }
+.multi-preview-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.multi-file-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+}
+.mfi-thumb { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.mfi-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+.mfi-info { flex: 1; min-width: 0; }
+.mfi-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mfi-size { font-size: 11px; color: var(--muted); }
+.mfi-remove { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+.mfi-remove:hover { color: var(--red); }
+.detail-files-section { margin: 8px 0; }
+.detail-files-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.detail-file-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer;
+  transition: background 0.15s;
+}
+.detail-file-item:hover { background: var(--surface3); }
+
 /* SYNC MODAL */
 .sync-field-wrap { position: relative; }
 .sync-field-wrap .form-input { padding-right: 80px; }
@@ -848,15 +879,24 @@ header {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Comprobante de pago</label>
-      <button class="camera-btn" onclick="openCamera()">📸 Tomar foto con cámara</button>
-      <div class="file-upload-area" id="file-upload-area">
-        <input type="file" id="f-file" accept="image/*,application/pdf" onchange="onFileSelected(event)">
-        <div class="file-upload-icon">📎</div>
-        <div class="file-upload-text"><strong>Seleccionar archivo</strong><br>Imagen o PDF</div>
+      <label class="form-label">📄 Estado de Cuenta / Planilla <span style="color:var(--muted);font-size:11px;font-weight:400;">máx. 2 archivos</span></label>
+      <div class="multi-upload-area" id="estado-upload-area" onclick="triggerUpload('f-estado')">
+        <input type="file" id="f-estado" accept="image/*,application/pdf" multiple style="display:none" onchange="onMultiFileSelected(event,'estado')">
+        <div class="file-upload-icon">📑</div>
+        <div class="file-upload-text"><strong>Seleccionar archivo(s)</strong><br>Imagen o PDF · máx 2</div>
       </div>
-      <div id="file-preview-wrap" style="display:none"></div>
-      <input type="file" id="f-camera" accept="image/*" capture="environment" style="display:none" onchange="onCameraCapture(event)">
+      <div id="estado-preview-wrap" class="multi-preview-wrap"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🧾 Comprobante de pago <span style="color:var(--muted);font-size:11px;font-weight:400;">máx. 2 archivos</span></label>
+      <button class="camera-btn" onclick="openCameraFor('comprobante')">📸 Tomar foto con cámara</button>
+      <div class="multi-upload-area" id="comprobante-upload-area" onclick="triggerUpload('f-comprobante')">
+        <input type="file" id="f-comprobante" accept="image/*,application/pdf" multiple style="display:none" onchange="onMultiFileSelected(event,'comprobante')">
+        <input type="file" id="f-camera" accept="image/*" capture="environment" style="display:none" onchange="onCameraCapture(event)">
+        <div class="file-upload-icon">📎</div>
+        <div class="file-upload-text"><strong>Seleccionar archivo(s)</strong><br>Imagen o PDF · máx 2</div>
+      </div>
+      <div id="comprobante-preview-wrap" class="multi-preview-wrap"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Notas (opcional)</label>
@@ -1359,20 +1399,30 @@ function openDetail(id) {
   if (p.notes) { notesRow.style.display='flex'; document.getElementById('d-notes').textContent=p.notes; }
   else notesRow.style.display='none';
 
-  // Comprobante
+  // Archivos adjuntos
   const compWrap = document.getElementById('d-comprobante-wrap');
-  if (p.file) {
-    const isImg = p.fileName && /\.(jpg|jpeg|png|gif|webp)$/i.test(p.fileName);
-    compWrap.innerHTML = `<div class="comprobante-thumb" onclick="viewComprobante('${p.id}')">
-      ${isImg ? `<img src="${p.file}" alt="comprobante">` : '<span style="font-size:32px">📄</span>'}
-      <div class="ct-info">
-        <div class="ct-name">${p.fileName||'Comprobante'}</div>
-        <div class="ct-tap">Toca para ver</div>
-      </div>
-    </div>`;
-  } else {
-    compWrap.innerHTML = '';
-  }
+  let filesHTML = '';
+  const renderFileSection = (title, files) => {
+    if (!files || files.length === 0) return '';
+    let html = `<div class="detail-files-section"><div class="detail-files-title">${title}</div>`;
+    files.forEach((f, i) => {
+      const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
+      html += `<div class="detail-file-item" onclick="viewFileInline('${p.id}','${title==='📄 Estado de Cuenta'?'estado':'comprobante'}',${i})">
+        ${isImg ? `<img class="mfi-thumb" src="${f.data}" alt="">` : '<div class="mfi-icon">📄</div>'}
+        <div class="mfi-info"><div class="mfi-name">${f.name||'Archivo'}</div><div class="mfi-size">Toca para ver</div></div>
+        <span style="color:var(--muted);font-size:18px;">›</span>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  };
+  // estado de cuenta files
+  filesHTML += renderFileSection('📄 Estado de Cuenta', p.estadoFiles);
+  // comprobante files — también soporta el viejo formato (p.file)
+  const compFiles = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles
+    : (p.file ? [{data:p.file, name:p.fileName||'Comprobante'}] : []);
+  filesHTML += renderFileSection('🧾 Comprobante de Pago', compFiles);
+  compWrap.innerHTML = filesHTML;
 
   document.getElementById('detail-modal').classList.add('open');
 }
@@ -1380,14 +1430,31 @@ function openDetail(id) {
 function viewComprobante(id) {
   const p = payments.find(x=>x.id==id);
   if (!p || !p.file) return;
-  const isImg = p.fileName && /\.(jpg|jpeg|png|gif|webp)$/i.test(p.fileName);
+  viewFileRaw(p.file, p.fileName||'archivo');
+}
+
+function viewFileInline(paymentId, section, idx) {
+  const p = payments.find(x=>x.id==paymentId);
+  if (!p) return;
+  let f;
+  if (section === 'estado') f = p.estadoFiles && p.estadoFiles[idx];
+  else {
+    const arr = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles
+      : (p.file ? [{data:p.file, name:p.fileName||'Comprobante'}] : []);
+    f = arr[idx];
+  }
+  if (!f) return;
+  viewFileRaw(f.data, f.name||'archivo');
+}
+
+function viewFileRaw(dataUrl, name) {
+  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(name||'');
   if (isImg) {
-    document.getElementById('img-viewer-src').src = p.file;
+    document.getElementById('img-viewer-src').src = dataUrl;
     document.getElementById('img-viewer').classList.add('open');
   } else {
-    // PDF - open in new tab
     const a = document.createElement('a');
-    a.href = p.file; a.target = '_blank'; a.click();
+    a.href = dataUrl; a.target = '_blank'; a.click();
   }
 }
 
@@ -1475,7 +1542,7 @@ function openAddModal() {
   document.getElementById('f-category').value = 'Servicios básicos';
   document.getElementById('btn-delete').style.display = 'none';
   currentFileData = null; currentFileName = null;
-  resetFilePreview();
+  resetAllFilePreviews();
   document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));
   document.querySelector('.status-btn[data-s="pendiente"]').classList.add('selected');
   renderIconGrid('💧');
@@ -1497,8 +1564,14 @@ function openEditModal(id) {
   document.getElementById('btn-delete').style.display = 'block';
   currentFileData = p.file||null;
   currentFileName = p.fileName||null;
-  resetFilePreview();
-  if (currentFileData) showFilePreview(currentFileName, null, currentFileData);
+  estadoFiles = p.estadoFiles ? JSON.parse(JSON.stringify(p.estadoFiles)) : [];
+  comprobanteFiles = p.comprobanteFiles ? JSON.parse(JSON.stringify(p.comprobanteFiles)) : [];
+  // backward compat: si tenia un solo comprobante viejo, migrarlo
+  if (currentFileData && comprobanteFiles.length === 0) {
+    comprobanteFiles = [{data: currentFileData, name: currentFileName||'comprobante', size: 0}];
+  }
+  renderMultiPreview('estado');
+  renderMultiPreview('comprobante');
   document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));
   const sb = document.querySelector(`.status-btn[data-s="${p.status}"]`);
   if (sb) sb.classList.add('selected');
@@ -1526,63 +1599,83 @@ function closeModal() {
   document.getElementById('add-modal').classList.remove('open');
   editingId = null;
   currentFileData = null; currentFileName = null;
+  estadoFiles = []; comprobanteFiles = [];
+  renderMultiPreview('estado'); renderMultiPreview('comprobante');
 }
 
-// ===================== FILE HANDLING =====================
-function openCamera() {
+// ===================== FILE HANDLING (MULTI) =====================
+let estadoFiles = [];       // [{data, name, size}]
+let comprobanteFiles = [];  // [{data, name, size}]
+let cameraTarget = 'comprobante';
+
+function triggerUpload(inputId) {
+  document.getElementById(inputId).click();
+}
+
+function openCameraFor(section) {
+  cameraTarget = section;
   document.getElementById('f-camera').click();
 }
 
 function onCameraCapture(e) {
   const file = e.target.files[0];
   if (!file) return;
-  processFile(file);
+  processMultiFile(file, cameraTarget);
+  e.target.value = '';
 }
 
-function onFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  processFile(file);
+function onMultiFileSelected(e, section) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => processMultiFile(f, section));
+  e.target.value = '';
 }
 
-function processFile(file) {
+function processMultiFile(file, section) {
+  const arr = section === 'estado' ? estadoFiles : comprobanteFiles;
+  if (arr.length >= 2) { showToast('❌ Máximo 2 archivos por sección'); return; }
   if (file.size > 5*1024*1024) { showToast('❌ Archivo muy grande (máx 5MB)'); return; }
   const reader = new FileReader();
   reader.onload = ev => {
-    currentFileData = ev.target.result;
-    currentFileName = file.name;
-    showFilePreview(file.name, file.size, ev.target.result);
+    arr.push({ data: ev.target.result, name: file.name, size: file.size });
+    renderMultiPreview(section);
   };
   reader.readAsDataURL(file);
 }
 
-function showFilePreview(name, size, dataUrl) {
-  const wrap = document.getElementById('file-preview-wrap');
-  const isImg = name && /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
-  const sizeText = size ? (size/1024).toFixed(0)+'KB' : '';
-  wrap.style.display = 'block';
-  wrap.innerHTML = `<div class="file-preview">
-    ${isImg ? `<img src="${dataUrl}" alt="">` : '<div class="fp-icon">📄</div>'}
-    <div class="fp-info">
-      <div class="fp-name">${name}</div>
-      <div class="fp-size">${sizeText} · Comprobante adjunto</div>
-    </div>
-    <button class="fp-remove" onclick="removeFile()">✕</button>
-  </div>`;
-  document.getElementById('file-upload-area').style.display = 'none';
+function renderMultiPreview(section) {
+  const arr = section === 'estado' ? estadoFiles : comprobanteFiles;
+  const wrap = document.getElementById(section + '-preview-wrap');
+  const uploadArea = document.getElementById(section + '-upload-area');
+  wrap.innerHTML = arr.map((f, i) => {
+    const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name);
+    const sizeText = (f.size/1024).toFixed(0) + 'KB';
+    return `<div class="multi-file-item">
+      ${isImg ? `<img class="mfi-thumb" src="${f.data}" alt="">` : '<div class="mfi-icon">📄</div>'}
+      <div class="mfi-info">
+        <div class="mfi-name">${f.name}</div>
+        <div class="mfi-size">${sizeText}</div>
+      </div>
+      <button class="mfi-remove" onclick="removeMultiFile('${section}',${i})">✕</button>
+    </div>`;
+  }).join('');
+  uploadArea.style.display = arr.length >= 2 ? 'none' : 'block';
 }
 
-function removeFile() {
-  currentFileData = null; currentFileName = null;
-  resetFilePreview();
+function removeMultiFile(section, idx) {
+  if (section === 'estado') estadoFiles.splice(idx, 1);
+  else comprobanteFiles.splice(idx, 1);
+  renderMultiPreview(section);
 }
 
-function resetFilePreview() {
-  document.getElementById('file-preview-wrap').style.display = 'none';
-  document.getElementById('file-preview-wrap').innerHTML = '';
-  document.getElementById('file-upload-area').style.display = 'block';
-  document.getElementById('f-file').value = '';
+function resetAllFilePreviews() {
+  estadoFiles = []; comprobanteFiles = [];
+  renderMultiPreview('estado'); renderMultiPreview('comprobante');
+  document.getElementById('f-estado').value = '';
+  document.getElementById('f-comprobante').value = '';
 }
+
+// legacy compat
+function resetFilePreview() { resetAllFilePreviews(); }
 
 function savePayment() {
   const name = document.getElementById('f-name').value.trim();
@@ -1598,9 +1691,13 @@ function savePayment() {
 
   if (editingId) {
     const p = payments.find(x=>x.id===editingId);
-    if (p) Object.assign(p,{icon,name,amount,balance,cutdate,due,notes,category,status,file:currentFileData,fileName:currentFileName});
+    if (p) Object.assign(p,{icon,name,amount,balance,cutdate,due,notes,category,status,
+      estadoFiles:[...estadoFiles], comprobanteFiles:[...comprobanteFiles],
+      file:comprobanteFiles[0]?.data||null, fileName:comprobanteFiles[0]?.name||null});
   } else {
-    payments.push({id:Date.now(),icon,name,amount,balance,cutdate,due,notes,category,status,paid_date:null,file:currentFileData,fileName:currentFileName});
+    payments.push({id:Date.now(),icon,name,amount,balance,cutdate,due,notes,category,status,paid_date:null,
+      estadoFiles:[...estadoFiles], comprobanteFiles:[...comprobanteFiles],
+      file:comprobanteFiles[0]?.data||null, fileName:comprobanteFiles[0]?.name||null});
   }
   save();
   closeModal();

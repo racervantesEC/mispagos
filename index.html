@@ -275,7 +275,8 @@ header {
 
 /* FAB */
 .fab {
-  position: fixed; bottom: 68px; right: 20px;
+  position: fixed; bottom: 68px;
+  right: calc(max(0px, (100vw - 430px) / 2) + 20px);
   width: 54px; height: 54px;
   background: linear-gradient(135deg, var(--accent), #a78bfa);
   border-radius: 50%; border: none; color: white; font-size: 26px;
@@ -284,6 +285,7 @@ header {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .fab:active { transform: scale(0.9); }
+.fab:hover { transform: scale(1.08); box-shadow: 0 12px 36px rgba(124,106,247,0.6); }
 
 /* VIEWS */
 .view { display: none; }
@@ -809,8 +811,16 @@ header {
       <input class="form-input" id="f-name" type="text" placeholder="Ej: Agua, Netflix...">
     </div>
     <div class="form-group">
-      <label class="form-label">Monto ($)</label>
+      <label class="form-label">Monto a pagar ($)</label>
       <input class="form-input" id="f-amount" type="number" step="0.01" placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado de cuenta ($) <span style="color:var(--muted);font-weight:400;font-size:11px;">— saldo actual</span></label>
+      <input class="form-input" id="f-balance" type="number" step="0.01" placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de corte</label>
+      <input class="form-input" id="f-cutdate" type="date">
     </div>
     <div class="form-group">
       <label class="form-label">Fecha de vencimiento</label>
@@ -877,6 +887,14 @@ header {
     <div class="detail-row">
       <span class="dr-label">Estado</span>
       <span class="dr-val" id="d-status"></span>
+    </div>
+    <div class="detail-row" id="d-balance-row" style="display:none">
+      <span class="dr-label">Estado de cuenta</span>
+      <span class="dr-val" id="d-balance"></span>
+    </div>
+    <div class="detail-row" id="d-cutdate-row" style="display:none">
+      <span class="dr-label">Fecha de corte</span>
+      <span class="dr-val" id="d-cutdate"></span>
     </div>
     <div class="detail-row">
       <span class="dr-label">Vencimiento</span>
@@ -1329,6 +1347,14 @@ function openDetail(id) {
   document.getElementById('d-status').textContent = pills[p.status]||p.status;
   document.getElementById('d-due').textContent = p.due ? formatDue(p.due)+' ('+p.due+')' : 'Sin fecha definida';
 
+  const balanceRow = document.getElementById('d-balance-row');
+  if (p.balance) { balanceRow.style.display='flex'; document.getElementById('d-balance').textContent='$'+Number(p.balance).toFixed(2); }
+  else balanceRow.style.display='none';
+
+  const cutdateRow = document.getElementById('d-cutdate-row');
+  if (p.cutdate) { cutdateRow.style.display='flex'; document.getElementById('d-cutdate').textContent=formatDue(p.cutdate)+' ('+p.cutdate+')'; }
+  else cutdateRow.style.display='none';
+
   const notesRow = document.getElementById('d-notes-row');
   if (p.notes) { notesRow.style.display='flex'; document.getElementById('d-notes').textContent=p.notes; }
   else notesRow.style.display='none';
@@ -1442,6 +1468,8 @@ function openAddModal() {
   document.getElementById('modal-title').textContent = 'Nuevo Pago';
   document.getElementById('f-name').value = '';
   document.getElementById('f-amount').value = '';
+  document.getElementById('f-balance').value = '';
+  document.getElementById('f-cutdate').value = '';
   document.getElementById('f-due').value = '';
   document.getElementById('f-notes').value = '';
   document.getElementById('f-category').value = 'Servicios básicos';
@@ -1461,6 +1489,8 @@ function openEditModal(id) {
   document.getElementById('modal-title').textContent = 'Editar Pago';
   document.getElementById('f-name').value = p.name;
   document.getElementById('f-amount').value = p.amount||'';
+  document.getElementById('f-balance').value = p.balance||'';
+  document.getElementById('f-cutdate').value = p.cutdate||'';
   document.getElementById('f-due').value = p.due||'';
   document.getElementById('f-notes').value = p.notes||'';
   document.getElementById('f-category').value = p.category||'Otros';
@@ -1559,6 +1589,8 @@ function savePayment() {
   if (!name) { showToast('❌ Ingresa un nombre'); return; }
   const icon = document.querySelector('.icon-btn.selected')?.textContent||'💳';
   const amount = parseFloat(document.getElementById('f-amount').value)||null;
+  const balance = parseFloat(document.getElementById('f-balance').value)||null;
+  const cutdate = document.getElementById('f-cutdate').value||null;
   const due = document.getElementById('f-due').value||null;
   const notes = document.getElementById('f-notes').value.trim();
   const category = document.getElementById('f-category').value;
@@ -1566,9 +1598,9 @@ function savePayment() {
 
   if (editingId) {
     const p = payments.find(x=>x.id===editingId);
-    if (p) Object.assign(p,{icon,name,amount,due,notes,category,status,file:currentFileData,fileName:currentFileName});
+    if (p) Object.assign(p,{icon,name,amount,balance,cutdate,due,notes,category,status,file:currentFileData,fileName:currentFileName});
   } else {
-    payments.push({id:Date.now(),icon,name,amount,due,notes,category,status,paid_date:null,file:currentFileData,fileName:currentFileName});
+    payments.push({id:Date.now(),icon,name,amount,balance,cutdate,due,notes,category,status,paid_date:null,file:currentFileData,fileName:currentFileName});
   }
   save();
   closeModal();

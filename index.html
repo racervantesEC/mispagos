@@ -80,6 +80,17 @@ header {
 
 .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 
+/* SYNC STATUS */
+.sync-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;
+  transition: all 0.3s;
+}
+.sync-badge.ok  { background: rgba(86,247,162,0.15); color: var(--green); border: 1px solid rgba(86,247,162,0.3); }
+.sync-badge.loading { background: rgba(124,106,247,0.15); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
+.sync-badge.offline { background: rgba(247,214,86,0.15); color: var(--yellow); border: 1px solid rgba(247,214,86,0.3); }
+.sync-badge.error { background: rgba(247,86,106,0.15); color: var(--red); border: 1px solid rgba(247,86,106,0.3); }
+
 .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
 .logo span { color: var(--accent); }
 
@@ -692,6 +703,7 @@ header {
         <div class="logo">Mis<span>Pagos</span></div>
         <div class="header-right">
           <div class="badge-alert" id="badge-alert">0 vencidos</div>
+          <div class="sync-badge loading" id="sync-badge">⏳ Conectando</div>
           <div class="month-badge" id="month-label"></div>
         </div>
       </div>
@@ -1139,6 +1151,9 @@ const STORAGE_KEY = 'mispagos_v2';
 const SHEETS_KEY = 'mispagos_sheets_url';
 const BIOMETRIC_KEY = 'mispagos_biometric';
 
+// ⬇️ PEGA AQUÍ LA URL DEL NUEVO DEPLOYMENT (después del paso 4)
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyNcdi98VYOvRrtmAROgHOD6W6L_rU_URHPHWIJzv4aTu5USnEYCjUOF3rad6_5_aoLMg/exec';
+
 const DEFAULT_PAYMENTS = [
   { id:1, icon:'💧', name:'Agua (Interagua)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'interagua.com.ec', paid_date:null, file:null, fileName:null },
   { id:2, icon:'⚡', name:'Electricidad (CNEL)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'cnel.gob.ec', paid_date:null, file:null, fileName:null },
@@ -1159,18 +1174,106 @@ let currentFileData = null;
 let currentFileName = null;
 let sheetsUrl = '';
 
+// ===================== SYNC STATUS =====================
+function showSyncStatus(msg, type='loading') {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-badge ' + type;
+}
+
 // ===================== INIT =====================
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
+async function load() {
   sheetsUrl = localStorage.getItem(SHEETS_KEY) || '';
   if (sheetsUrl) document.getElementById('sheets-desc').textContent = '✅ Conectado';
   updateBiometricUI();
+
+  const cloudReady = CLOUD_URL && CLOUD_URL !== 'PEGAR_URL_AQUI';
+
+  if (cloudReady) {
+    showSyncStatus('⏳ Cargando...', 'loading');
+    try {
+      const res = await fetch(CLOUD_URL, { redirect: 'follow' });
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
+        // Merge cloud data with local files (los archivos se guardan solo local)
+        const localRaw = localStorage.getItem(STORAGE_KEY);
+        const localList = localRaw ? JSON.parse(localRaw) : [];
+        payments = json.data.map(sp => {
+          const lp = localList.find(l => l.id === sp.id);
+          if (lp) return { ...sp, file: lp.file||null, fileName: lp.fileName||null, estadoFiles: lp.estadoFiles||[], comprobanteFiles: lp.comprobanteFiles||[] };
+          return sp;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
+        showSyncStatus('✅ En línea', 'ok');
+      } else if (json.ok && json.data.length === 0) {
+        // Nube vacía — usar local si existe
+        const raw = localStorage.getItem(STORAGE_KEY);
+        payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
+        showSyncStatus('✅ En línea', 'ok');
+        if (payments.length > 0) save(); // subir datos locales a la nube
+      } else {
+        throw new Error('Respuesta inválida');
+      }
+    } catch(e) {
+      showSyncStatus('⚠️ Sin conexión', 'offline');
+      const raw = localStorage.getItem(STORAGE_KEY);
+      payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
+    }
+  } else {
+    showSyncStatus('📱 Local', 'offline');
+    const raw = localStorage.getItem(STORAGE_KEY);
+    payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
+  }
+
+  // Auto-refresh cada 60 segundos
+  if (cloudReady) setInterval(refreshFromCloud, 60000);
+}
+
+async function refreshFromCloud() {
+  if (!CLOUD_URL || CLOUD_URL === 'PEGAR_URL_AQUI') return;
+  try {
+    const res = await fetch(CLOUD_URL, { redirect: 'follow' });
+    const json = await res.json();
+    if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
+      const localRaw = localStorage.getItem(STORAGE_KEY);
+      const localList = localRaw ? JSON.parse(localRaw) : [];
+      payments = json.data.map(sp => {
+        const lp = localList.find(l => l.id === sp.id);
+        if (lp) return { ...sp, file: lp.file||null, fileName: lp.fileName||null, estadoFiles: lp.estadoFiles||[], comprobanteFiles: lp.comprobanteFiles||[] };
+        return sp;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
+      renderHome();
+      showSyncStatus('✅ En línea', 'ok');
+    }
+  } catch(e) { showSyncStatus('⚠️ Sin conexión', 'offline'); }
 }
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
-  if (sheetsUrl) syncToSheets();
+  if (CLOUD_URL && CLOUD_URL !== 'PEGAR_URL_AQUI') {
+    syncToCloud();
+  } else if (sheetsUrl) {
+    syncToSheets();
+  }
+}
+
+function syncToCloud() {
+  showSyncStatus('⏳ Guardando...', 'loading');
+  // Quitar archivos binarios para no exceder límites de Sheets
+  const cloudData = payments.map(p => {
+    const c = { ...p };
+    delete c.file; delete c.fileName;
+    delete c.estadoFiles; delete c.comprobanteFiles;
+    return c;
+  });
+  fetch(CLOUD_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(cloudData)
+  }).catch(() => {});
+  setTimeout(() => showSyncStatus('✅ Guardado', 'ok'), 2000);
 }
 
 // ===================== VIEWS =====================
@@ -2110,9 +2213,10 @@ function showToast(msg) {
 });
 
 // ===================== START =====================
-load();
-renderHome();
-scheduleNotifications();
+load().then(() => {
+  renderHome();
+  scheduleNotifications();
+});
 </script>
 </body>
 </html>

@@ -1261,7 +1261,8 @@ function fetchJsonp(url) {
       clearTimeout(timer); delete window[cb]; script.remove();
       resolve(data);
     };
-    script.src = url + '?callback=' + cb;
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = url + sep + 'callback=' + cb;
     script.onerror = () => { clearTimeout(timer); delete window[cb]; script.remove(); reject(new Error('Error')); };
     document.head.appendChild(script);
   });

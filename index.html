@@ -1152,7 +1152,7 @@ const SHEETS_KEY = 'mispagos_sheets_url';
 const BIOMETRIC_KEY = 'mispagos_biometric';
 
 // ⬇️ PEGA AQUÍ LA URL DEL NUEVO DEPLOYMENT (después del paso 4)
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyNcdi98VYOvRrtmAROgHOD6W6L_rU_URHPHWIJzv4aTu5USnEYCjUOF3rad6_5_aoLMg/exec';
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbzmS2UKlMZAc6-w8Odi9vrIBkBzN3LABCuah4qvSG8pf6rukt3DU9TevHpfeT9RB3F3Zg/exec';
 
 const DEFAULT_PAYMENTS = [
   { id:1, icon:'💧', name:'Agua (Interagua)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'interagua.com.ec', paid_date:null, file:null, fileName:null },
@@ -1193,8 +1193,7 @@ async function load() {
   if (cloudReady) {
     showSyncStatus('⏳ Cargando...', 'loading');
     try {
-      const res = await fetch(CLOUD_URL, { redirect: 'follow' });
-      const json = await res.json();
+      const json = await fetchJsonp(CLOUD_URL);
       if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
         // Merge cloud data with local files (los archivos se guardan solo local)
         const localRaw = localStorage.getItem(STORAGE_KEY);
@@ -1233,8 +1232,7 @@ async function load() {
 async function refreshFromCloud() {
   if (!CLOUD_URL || CLOUD_URL === 'PEGAR_URL_AQUI') return;
   try {
-    const res = await fetch(CLOUD_URL, { redirect: 'follow' });
-    const json = await res.json();
+    const json = await fetchJsonp(CLOUD_URL);
     if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
       const localRaw = localStorage.getItem(STORAGE_KEY);
       const localList = localRaw ? JSON.parse(localRaw) : [];
@@ -1248,6 +1246,25 @@ async function refreshFromCloud() {
       showSyncStatus('✅ En línea', 'ok');
     }
   } catch(e) { showSyncStatus('⚠️ Sin conexión', 'offline'); }
+}
+
+// JSONP — evita bloqueo CORS de Google Apps Script
+function fetchJsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'mp_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cb]; script.remove();
+      reject(new Error('Timeout'));
+    }, 12000);
+    window[cb] = (data) => {
+      clearTimeout(timer); delete window[cb]; script.remove();
+      resolve(data);
+    };
+    script.src = url + '?callback=' + cb;
+    script.onerror = () => { clearTimeout(timer); delete window[cb]; script.remove(); reject(new Error('Error')); };
+    document.head.appendChild(script);
+  });
 }
 
 function save() {

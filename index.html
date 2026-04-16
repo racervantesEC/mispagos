@@ -11,699 +11,284 @@
 <title>MisPagos</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
-/* ===== THEME SYSTEM ===== */
 :root {
-  --bg: #0a0a0f;
-  --surface: #13131a;
-  --surface2: #1c1c26;
-  --surface3: #242433;
-  --border: #2a2a38;
-  --accent: #7c6af7;
-  --accent2: #f7a26a;
-  --red: #f7566a;
-  --green: #56f7a2;
-  --yellow: #f7df56;
-  --blue: #56c8f7;
-  --text: #e8e8f0;
-  --text2: #b0b0c0;
-  --muted: #6b6b80;
-  --radius: 16px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--surface3:#242433;
+  --border:#2a2a38;--accent:#7c6af7;--accent2:#f7a26a;
+  --red:#f7566a;--green:#56f7a2;--yellow:#f7df56;--blue:#56c8f7;
+  --text:#e8e8f0;--text2:#b0b0c0;--muted:#6b6b80;--radius:16px;
 }
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f0f0f8;
-    --surface: #ffffff;
-    --surface2: #f5f5fc;
-    --surface3: #ebebf5;
-    --border: #dddde8;
-    --text: #1a1a2e;
-    --text2: #4a4a6a;
-    --muted: #9090a8;
-    --shadow: 0 8px 32px rgba(0,0,0,0.12);
-  }
+@media(prefers-color-scheme:light){
+  :root{--bg:#f0f0f8;--surface:#fff;--surface2:#f5f5fc;--surface3:#ebebf5;
+  --border:#dddde8;--text:#1a1a2e;--text2:#4a4a6a;--muted:#9090a8;}
 }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,106,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,106,247,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:430px;margin:0 auto;padding:0 0 90px;}
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+/* SYNC STATUS BAR */
+.sync-bar{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;z-index:200;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:6px 16px;font-size:11px;font-weight:600;
+  transition:all 0.3s;pointer-events:none;
 }
+.sync-bar.syncing{background:rgba(124,106,247,0.9);color:white;}
+.sync-bar.synced{background:rgba(86,247,162,0.9);color:#0a2e1a;}
+.sync-bar.error{background:rgba(247,86,106,0.9);color:white;}
+.sync-bar.offline{background:rgba(107,107,128,0.85);color:white;}
+.sync-bar.hidden{opacity:0;}
 
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none; z-index: 0;
-}
-
-.app { position: relative; z-index: 1; max-width: 430px; margin: 0 auto; padding: 0 0 90px; }
-
-/* ===== HEADER ===== */
-header {
-  padding: 52px 20px 16px;
-  background: linear-gradient(180deg, rgba(124,106,247,0.1) 0%, transparent 100%);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 50;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-
-/* SYNC STATUS */
-.sync-badge {
-  font-size: 11px; font-weight: 600; padding: 3px 10px;
-  border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;
-  transition: all 0.3s;
-}
-.sync-badge.ok  { background: rgba(86,247,162,0.15); color: var(--green); border: 1px solid rgba(86,247,162,0.3); }
-.sync-badge.loading { background: rgba(124,106,247,0.15); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
-.sync-badge.offline { background: rgba(247,214,86,0.15); color: var(--yellow); border: 1px solid rgba(247,214,86,0.3); }
-.sync-badge.error { background: rgba(247,86,106,0.15); color: var(--red); border: 1px solid rgba(247,86,106,0.3); }
-
-.logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-.logo span { color: var(--accent); }
-
-.header-right { display: flex; align-items: center; gap: 10px; }
-
-.month-badge {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 5px 12px;
-  font-size: 11px; font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase; letter-spacing: 1px;
-}
-
-.badge-alert {
-  background: var(--red);
-  color: white;
-  font-family: 'Syne', sans-serif;
-  font-size: 11px; font-weight: 800;
-  border-radius: 20px;
-  padding: 4px 10px;
-  animation: pulse 2s infinite;
-  display: none;
-}
-
-@keyframes pulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
-}
+/* HEADER */
+header{padding:52px 20px 16px;background:linear-gradient(180deg,rgba(124,106,247,0.1) 0%,transparent 100%);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.month-badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.badge-alert{background:var(--red);color:white;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;border-radius:20px;padding:4px 10px;animation:pulse 2s infinite;display:none;}
+.firebase-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background 0.3s;}
+.firebase-dot.connected{background:var(--green);}
+.firebase-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.8;transform:scale(1.05);}}
 
 /* SEARCH */
-.search-wrap { position: relative; }
-.search-input {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 16px 10px 38px;
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.search-input:focus { border-color: var(--accent); }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
-.search-clear {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px;
-  display: none;
-}
+.search-wrap{position:relative;}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 16px 10px 38px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;display:none;}
 
-/* ===== SUMMARY ===== */
-.summary {
-  display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
-  padding: 16px 20px 0;
-  margin-bottom: 16px;
-}
-
-.sum-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-.sum-card:active { transform: scale(0.96); }
-.sum-card .val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
-.sum-card .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-.sum-card.danger .val { color: var(--red); }
-.sum-card.warn .val { color: var(--yellow); }
-.sum-card.ok .val { color: var(--green); }
-.sum-card.info .val { color: var(--blue); }
+/* SUMMARY */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 20px 0;margin-bottom:16px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:transform 0.15s;}
+.sum-card:active{transform:scale(0.96);}
+.sum-card .val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1;margin-bottom:3px;}
+.sum-card .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.sum-card.danger .val{color:var(--red);}
+.sum-card.warn .val{color:var(--yellow);}
+.sum-card.ok .val{color:var(--green);}
+.sum-card.info .val{color:var(--blue);}
 
 /* TOTAL BAR */
-.total-bar {
-  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  margin: 0 20px 20px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.total-bar .t-label { font-size: 12px; opacity: 0.8; margin-bottom: 2px; }
-.total-bar .t-amount { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
-.total-bar .t-sub { font-size: 11px; opacity: 0.7; }
-.total-bar .t-icon { font-size: 32px; opacity: 0.6; }
+.total-bar{background:linear-gradient(135deg,var(--accent) 0%,#a78bfa 100%);border-radius:var(--radius);padding:16px 18px;margin:0 20px 20px;display:flex;justify-content:space-between;align-items:center;}
+.total-bar .t-label{font-size:12px;opacity:0.8;margin-bottom:2px;}
+.total-bar .t-amount{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;}
+.total-bar .t-sub{font-size:11px;opacity:0.7;}
+.total-bar .t-icon{font-size:32px;opacity:0.6;}
 
 /* SECTION TITLE */
-.section-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 12px; font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase; letter-spacing: 1.5px;
-  padding: 0 20px;
-  margin-bottom: 10px;
-  display: flex; justify-content: space-between; align-items: center;
-}
+.section-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
 
 /* CARDS */
-.cards { padding: 0 20px; display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 14px 14px 18px;
-  display: flex; align-items: center; gap: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative; overflow: hidden;
-  animation: fadeSlideIn 0.3s ease both;
-}
-
-.card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-}
-.card.vencido::before { background: var(--red); }
-.card.proximo::before { background: var(--yellow); }
-.card.pagado::before { background: var(--green); }
-.card.pendiente::before { background: var(--muted); }
-.card:active { transform: scale(0.98); background: var(--surface2); }
-
-.card-icon {
-  width: 42px; height: 42px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-  background: var(--surface2); border: 1px solid var(--border);
-  position: relative;
-}
-.card-icon .has-file {
-  position: absolute; bottom: -3px; right: -3px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--surface);
-  font-size: 7px; display: flex; align-items: center; justify-content: center;
-}
-
-.card-info { flex: 1; min-width: 0; }
-.card-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-sub { font-size: 11px; color: var(--muted); }
-
-.card-right { text-align: right; flex-shrink: 0; }
-.card-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
-.card-amount.no-amount { color: var(--muted); font-size: 12px; font-weight: 400; }
-
-.status-pill {
-  display: inline-block; padding: 2px 7px; border-radius: 20px;
-  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  margin-top: 3px;
-}
-.status-pill.vencido { background: rgba(247,86,106,0.15); color: var(--red); }
-.status-pill.proximo { background: rgba(247,223,86,0.15); color: var(--yellow); }
-.status-pill.pagado { background: rgba(86,247,162,0.15); color: var(--green); }
-.status-pill.pendiente { background: rgba(107,107,128,0.15); color: var(--muted); }
+.cards{padding:0 20px;display:flex;flex-direction:column;gap:9px;margin-bottom:24px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 14px 14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;animation:fadeSlideIn 0.3s ease both;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.card.vencido::before{background:var(--red);}
+.card.proximo::before{background:var(--yellow);}
+.card.pagado::before{background:var(--green);}
+.card.pendiente::before{background:var(--muted);}
+.card:active{transform:scale(0.98);background:var(--surface2);}
+.card-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);position:relative;}
+.card-icon .has-file{position:absolute;bottom:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);font-size:7px;display:flex;align-items:center;justify-content:center;}
+.card-info{flex:1;min-width:0;}
+.card-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-sub{font-size:11px;color:var(--muted);}
+.card-right{text-align:right;flex-shrink:0;}
+.card-amount{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+.card-amount.no-amount{color:var(--muted);font-size:12px;font-weight:400;}
+.status-pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;}
+.status-pill.vencido{background:rgba(247,86,106,0.15);color:var(--red);}
+.status-pill.proximo{background:rgba(247,223,86,0.15);color:var(--yellow);}
+.status-pill.pagado{background:rgba(86,247,162,0.15);color:var(--green);}
+.status-pill.pendiente{background:rgba(107,107,128,0.15);color:var(--muted);}
 
 /* FILTER TABS */
-.filter-tabs {
-  display: flex; gap: 7px; padding: 0 20px; margin-bottom: 14px;
-  overflow-x: auto; scrollbar-width: none;
-}
-.filter-tabs::-webkit-scrollbar { display: none; }
-.filter-tab {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 20px; padding: 6px 12px;
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
-}
-.filter-tab.active { background: var(--accent); border-color: var(--accent); color: white; }
+.filter-tabs{display:flex;gap:7px;padding:0 20px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.filter-tabs::-webkit-scrollbar{display:none;}
+.filter-tab{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s;}
+.filter-tab.active{background:var(--accent);border-color:var(--accent);color:white;}
 
 /* BOTTOM NAV */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px;
-  background: rgba(19,19,26,0.96);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  display: flex; padding: 10px 0 28px; z-index: 100;
-}
-@media (prefers-color-scheme: light) {
-  .bottom-nav { background: rgba(255,255,255,0.96); }
-}
-.nav-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 9px; font-family: 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 0.5px;
-  transition: color 0.2s;
-}
-.nav-btn.active { color: var(--accent); }
-.nav-btn .nav-icon { font-size: 20px; }
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(19,19,26,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding:10px 0 28px;z-index:100;}
+@media(prefers-color-scheme:light){.bottom-nav{background:rgba(255,255,255,0.96);}}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:9px;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px;transition:color 0.2s;}
+.nav-btn.active{color:var(--accent);}
+.nav-btn .nav-icon{font-size:20px;}
 
 /* FAB */
-.fab {
-  position: fixed; bottom: 68px;
-  right: calc(max(0px, (100vw - 430px) / 2) + 20px);
-  width: 54px; height: 54px;
-  background: linear-gradient(135deg, var(--accent), #a78bfa);
-  border-radius: 50%; border: none; color: white; font-size: 26px;
-  cursor: pointer; box-shadow: 0 8px 32px rgba(124,106,247,0.45);
-  display: flex; align-items: center; justify-content: center; z-index: 99;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.fab:active { transform: scale(0.9); }
-.fab:hover { transform: scale(1.08); box-shadow: 0 12px 36px rgba(124,106,247,0.6); }
+.fab{position:fixed;bottom:68px;right:20px;width:54px;height:54px;background:linear-gradient(135deg,var(--accent),#a78bfa);border-radius:50%;border:none;color:white;font-size:26px;cursor:pointer;box-shadow:0 8px 32px rgba(124,106,247,0.45);display:flex;align-items:center;justify-content:center;z-index:99;transition:transform 0.2s;}
+.fab:active{transform:scale(0.9);}
 
 /* VIEWS */
-.view { display: none; }
-.view.active { display: block; }
+.view{display:none;}
+.view.active{display:block;}
 
 /* PAGE HEADER */
-.page-header {
-  padding: 52px 20px 16px;
-  border-bottom: 1px solid var(--border); margin-bottom: 20px;
-  position: sticky; top: 0; z-index: 50;
-  background: var(--bg);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-}
-.page-header h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
-.page-header p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.page-header{padding:52px 20px 16px;border-bottom:1px solid var(--border);margin-bottom:20px;position:sticky;top:0;z-index:50;background:var(--bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
+.page-header h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+.page-header p{font-size:12px;color:var(--muted);margin-top:3px;}
 
-/* ===== MODAL ===== */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  z-index: 200; display: flex; align-items: flex-end;
-  opacity: 0; pointer-events: none; transition: opacity 0.3s;
-}
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px 24px 0 0;
-  width: 100%; max-width: 430px; margin: 0 auto;
-  padding: 20px 20px 40px;
-  transform: translateY(100%);
-  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-  max-height: 92vh; overflow-y: auto;
-}
-.modal-overlay.open .modal { transform: translateY(0); }
-
-.modal-handle {
-  width: 38px; height: 4px; background: var(--border);
-  border-radius: 2px; margin: 0 auto 18px;
-}
-.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 18px; }
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:430px;margin:0 auto;padding:20px 20px 40px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);max-height:92vh;overflow-y:auto;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:18px;}
 
 /* FORM */
-.form-group { margin-bottom: 14px; }
-.form-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; display: block; font-weight: 600; }
-.form-input, .form-select {
-  width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px 14px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
-  transition: border-color 0.2s; -webkit-appearance: none;
-}
-.form-input:focus, .form-select:focus { border-color: var(--accent); }
-.form-select option { background: var(--surface2); color: var(--text); }
-
-.icon-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 7px; }
-.icon-btn {
-  aspect-ratio: 1; background: var(--surface2); border: 2px solid var(--border);
-  border-radius: 10px; font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-}
-.icon-btn.selected { border-color: var(--accent); background: rgba(124,106,247,0.15); }
-
-.status-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
-.status-btn {
-  background: var(--surface2); border: 2px solid var(--border); border-radius: 12px;
-  padding: 11px; text-align: center; cursor: pointer;
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--muted); transition: all 0.15s;
-}
-.status-btn.selected.vencido { border-color: var(--red); color: var(--red); background: rgba(247,86,106,0.12); }
-.status-btn.selected.proximo { border-color: var(--yellow); color: var(--yellow); background: rgba(247,223,86,0.12); }
-.status-btn.selected.pagado { border-color: var(--green); color: var(--green); background: rgba(86,247,162,0.12); }
-.status-btn.selected.pendiente { border-color: var(--muted); color: var(--text); background: rgba(107,107,128,0.12); }
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;display:block;font-weight:600;}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.form-select option{background:var(--surface2);color:var(--text);}
+.icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;}
+.icon-btn{aspect-ratio:1;background:var(--surface2);border:2px solid var(--border);border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.icon-btn.selected{border-color:var(--accent);background:rgba(124,106,247,0.15);}
+.status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.status-btn{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:11px;text-align:center;cursor:pointer;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);transition:all 0.15s;}
+.status-btn.selected.vencido{border-color:var(--red);color:var(--red);background:rgba(247,86,106,0.12);}
+.status-btn.selected.proximo{border-color:var(--yellow);color:var(--yellow);background:rgba(247,223,86,0.12);}
+.status-btn.selected.pagado{border-color:var(--green);color:var(--green);background:rgba(86,247,162,0.12);}
+.status-btn.selected.pendiente{border-color:var(--muted);color:var(--text);background:rgba(107,107,128,0.12);}
 
 /* FILE UPLOAD */
-.file-upload-area {
-  border: 2px dashed var(--border); border-radius: 12px;
-  padding: 20px; text-align: center; cursor: pointer;
-  transition: all 0.2s; position: relative; overflow: hidden;
-}
-.file-upload-area:hover, .file-upload-area.dragover { border-color: var(--accent); background: rgba(124,106,247,0.05); }
-.file-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.file-upload-icon { font-size: 28px; margin-bottom: 6px; }
-.file-upload-text { font-size: 13px; color: var(--muted); }
-.file-upload-text strong { color: var(--accent); }
-
-.file-preview {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 10px 12px; margin-top: 8px;
-}
-.file-preview img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
-.file-preview .fp-icon { font-size: 28px; }
-.file-preview .fp-info { flex: 1; min-width: 0; }
-.file-preview .fp-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-preview .fp-size { font-size: 11px; color: var(--muted); }
-.file-preview .fp-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 18px; padding: 4px; }
-
-/* CAMERA BUTTON */
-.camera-btn {
-  width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px; color: var(--text2);
-  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-bottom: 8px; transition: all 0.15s;
-}
-.camera-btn:active { background: var(--surface3); }
+.file-upload-area{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.file-upload-area:hover{border-color:var(--accent);background:rgba(124,106,247,0.05);}
+.file-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.file-upload-icon{font-size:28px;margin-bottom:6px;}
+.file-upload-text{font-size:13px;color:var(--muted);}
+.file-upload-text strong{color:var(--accent);}
+.file-preview{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;}
+.file-preview img{width:40px;height:40px;object-fit:cover;border-radius:6px;}
+.file-preview .fp-icon{font-size:28px;}
+.file-preview .fp-info{flex:1;min-width:0;}
+.file-preview .fp-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-preview .fp-size{font-size:11px;color:var(--muted);}
+.file-preview .fp-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px;}
+.camera-btn{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:all 0.15s;}
 
 /* BUTTONS */
-.btn-primary {
-  width: 100%; background: linear-gradient(135deg, var(--accent), #a78bfa);
-  border: none; border-radius: 14px; padding: 15px;
-  color: white; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
-  cursor: pointer; margin-top: 6px; transition: opacity 0.2s;
-}
-.btn-primary:active { opacity: 0.85; }
-.btn-danger {
-  width: 100%; background: rgba(247,86,106,0.12); border: 1px solid rgba(247,86,106,0.25);
-  border-radius: 14px; padding: 13px; color: var(--red);
-  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
-  cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
-}
-.btn-action {
-  flex: 1; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-  cursor: pointer; text-align: center; transition: all 0.15s;
-}
-.btn-action.mark-paid { background: rgba(86,247,162,0.1); border-color: rgba(86,247,162,0.3); color: var(--green); }
-.btn-action:active { opacity: 0.8; }
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),#a78bfa);border:none;border-radius:14px;padding:15px;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:opacity 0.2s;}
+.btn-primary:active{opacity:0.85;}
+.btn-danger{width:100%;background:rgba(247,86,106,0.12);border:1px solid rgba(247,86,106,0.25);border-radius:14px;padding:13px;color:var(--red);font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+.btn-action{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.15s;}
+.btn-action.mark-paid{background:rgba(86,247,162,0.1);border-color:rgba(86,247,162,0.3);color:var(--green);}
+.btn-action:active{opacity:0.8;}
 
 /* DETAIL MODAL */
-.detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.detail-icon-wrap {
-  width: 60px; height: 60px; border-radius: 16px;
-  background: var(--surface2); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; font-size: 32px; flex-shrink: 0;
-}
-.detail-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
-.detail-cat { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.detail-icon-wrap{width:60px;height:60px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
+.detail-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+.detail-cat{font-size:12px;color:var(--muted);margin-top:2px;}
+.detail-amount{text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;}
+.detail-amount .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.detail-amount .big{font-family:'Syne',sans-serif;font-size:38px;font-weight:800;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.detail-row .dr-label{color:var(--muted);}
+.detail-row .dr-val{font-weight:500;max-width:60%;text-align:right;}
+.actions-row{display:flex;gap:8px;margin-top:18px;}
+.comprobante-thumb{width:100%;border-radius:12px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);margin-top:14px;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px;transition:all 0.15s;}
+.comprobante-thumb img{width:50px;height:50px;object-fit:cover;border-radius:8px;}
+.comprobante-thumb .ct-info{flex:1;}
+.comprobante-thumb .ct-name{font-size:13px;font-weight:600;}
+.comprobante-thumb .ct-tap{font-size:11px;color:var(--muted);}
 
-.detail-amount {
-  text-align: center; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
-}
-.detail-amount .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-.detail-amount .big { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800; }
+/* CHARTS */
+.chart-section{padding:0 20px;margin-bottom:24px;}
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.chart-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:16px;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;margin-bottom:8px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;}
+.bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--accent) 0%,rgba(124,106,247,0.5) 100%);transition:height 0.6s cubic-bezier(0.34,1.56,0.64,1);min-height:4px;}
+.bar.current{background:linear-gradient(180deg,var(--accent2) 0%,rgba(247,162,106,0.5) 100%);}
+.bar-val{font-size:9px;font-weight:700;color:var(--muted);white-space:nowrap;}
+.bar-lbl{font-size:9px;color:var(--muted);white-space:nowrap;}
+.chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+.cat-breakdown{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.cat-row{display:flex;align-items:center;gap:10px;}
+.cat-name{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-bar-wrap{flex:2;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.cat-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#a78bfa);transition:width 0.6s ease;}
+.cat-amount{font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;}
 
-.detail-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 13px 0; border-bottom: 1px solid var(--border); font-size: 14px;
-}
-.detail-row .dr-label { color: var(--muted); }
-.detail-row .dr-val { font-weight: 500; max-width: 60%; text-align: right; }
-
-.actions-row { display: flex; gap: 8px; margin-top: 18px; }
-
-/* COMPROBANTE VIEWER */
-.comprobante-thumb {
-  width: 100%; border-radius: 12px; overflow: hidden;
-  background: var(--surface2); border: 1px solid var(--border);
-  margin-top: 14px; cursor: pointer;
-  display: flex; align-items: center; gap: 12px; padding: 12px;
-  transition: all 0.15s;
-}
-.comprobante-thumb:active { opacity: 0.8; }
-.comprobante-thumb img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
-.comprobante-thumb .ct-info { flex: 1; }
-.comprobante-thumb .ct-name { font-size: 13px; font-weight: 600; }
-.comprobante-thumb .ct-tap { font-size: 11px; color: var(--muted); }
-
-/* ===== CHART VIEW ===== */
-.chart-section { padding: 0 20px; margin-bottom: 24px; }
-.chart-container {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px;
-}
-.chart-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 16px; }
-.chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-bottom: 8px; }
-.bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-.bar {
-  width: 100%; border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, var(--accent) 0%, rgba(124,106,247,0.5) 100%);
-  transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1);
-  min-height: 4px; position: relative; cursor: pointer;
-}
-.bar.current { background: linear-gradient(180deg, var(--accent2) 0%, rgba(247,162,106,0.5) 100%); }
-.bar-val { font-size: 9px; font-weight: 700; color: var(--muted); white-space: nowrap; }
-.bar-lbl { font-size: 9px; color: var(--muted); white-space: nowrap; }
-
-.chart-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-/* CATEGORY BREAKDOWN */
-.cat-breakdown { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-.cat-row { display: flex; align-items: center; gap: 10px; }
-.cat-name { font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cat-bar-wrap { flex: 2; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
-.cat-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #a78bfa); transition: width 0.6s ease; }
-.cat-amount { font-size: 12px; font-weight: 700; color: var(--text2); white-space: nowrap; }
-
-/* SERVICE HISTORY */
-.service-list { padding: 0 20px; display: flex; flex-direction: column; gap: 9px; }
-.service-row {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer;
-  transition: all 0.15s;
-}
-.service-row:active { background: var(--surface2); }
-.srv-icon { font-size: 24px; }
-.srv-info { flex: 1; }
-.srv-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
-.srv-count { font-size: 11px; color: var(--muted); }
-.srv-total { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--accent); }
-
-/* SERVICE HISTORY DETAIL */
-.history-item {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-  padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
-}
-.hi-left .hi-date { font-size: 13px; font-weight: 600; }
-.hi-left .hi-status { font-size: 11px; color: var(--muted); }
-.hi-amount { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; }
+/* HISTORY */
+.service-list{padding:0 20px;display:flex;flex-direction:column;gap:9px;}
+.service-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;}
+.service-row:active{background:var(--surface2);}
+.srv-icon{font-size:24px;}
+.srv-info{flex:1;}
+.srv-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+.srv-count{font-size:11px;color:var(--muted);}
+.srv-total{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--accent);}
+.history-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hi-left .hi-date{font-size:13px;font-weight:600;}
+.hi-left .hi-status{font-size:11px;color:var(--muted);}
+.hi-amount{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;}
 
 /* SETTINGS */
-.settings-section { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.setting-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px;
-  display: flex; align-items: center; gap: 14px; cursor: pointer;
-  transition: all 0.15s;
-}
-.setting-card:active { background: var(--surface2); }
-.setting-icon { font-size: 28px; }
-.setting-info { flex: 1; }
-.setting-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-.setting-desc { font-size: 12px; color: var(--muted); }
-.setting-arrow { color: var(--muted); font-size: 18px; }
+.settings-section{padding:0 20px;display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.setting-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.15s;}
+.setting-card:active{background:var(--surface2);}
+.setting-icon{font-size:28px;}
+.setting-info{flex:1;}
+.setting-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px;}
+.setting-desc{font-size:12px;color:var(--muted);}
+.setting-arrow{color:var(--muted);font-size:18px;}
 
-/* GOOGLE SHEETS */
-.sheets-status {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px; border-radius: 10px;
-  font-size: 12px; font-weight: 600; margin-top: 10px;
-}
-.sheets-status.connected { background: rgba(86,247,162,0.1); color: var(--green); border: 1px solid rgba(86,247,162,0.2); }
-.sheets-status.disconnected { background: rgba(107,107,128,0.1); color: var(--muted); border: 1px solid var(--border); }
-
-/* NOTIFICATION MODAL */
-.notif-steps { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
-.notif-step {
-  display: flex; gap: 12px; align-items: flex-start;
-  background: var(--surface2); border-radius: 12px; padding: 12px;
-}
-.notif-num {
-  width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;
-}
-.notif-text { font-size: 13px; color: var(--text2); line-height: 1.4; }
-.notif-text strong { color: var(--text); }
+/* NOTIF STEPS */
+.notif-steps{display:flex;flex-direction:column;gap:12px;margin:16px 0;}
+.notif-step{display:flex;gap:12px;align-items:flex-start;background:var(--surface2);border-radius:12px;padding:12px;}
+.notif-num{width:24px;height:24px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:white;flex-shrink:0;}
+.notif-text{font-size:13px;color:var(--text2);line-height:1.4;}
+.notif-text strong{color:var(--text);}
 
 /* IMAGE VIEWER */
-.img-viewer-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-  z-index: 300; display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity 0.2s;
-}
-.img-viewer-overlay.open { opacity: 1; pointer-events: all; }
-.img-viewer-overlay img { max-width: 95vw; max-height: 90vh; border-radius: 12px; object-fit: contain; }
-.img-viewer-close {
-  position: absolute; top: 20px; right: 20px;
-  background: rgba(255,255,255,0.15); border: none; color: white;
-  width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
+.img-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.img-viewer-overlay.open{opacity:1;pointer-events:all;}
+.img-viewer-overlay img{max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain;}
+.img-viewer-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
-/* HIST TABS */
-.hist-tabs { display: flex; gap: 8px; }
-.hist-tab {
-  flex: 1; padding: 10px; border-radius: 12px;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text2); font-family: 'Syne',sans-serif; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all 0.15s;
-}
-.hist-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+/* FIREBASE STATUS */
+.fb-status{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:16px;}
+.fb-status.connected{background:rgba(86,247,162,0.1);color:var(--green);border:1px solid rgba(86,247,162,0.2);}
+.fb-status.disconnected{background:rgba(107,107,128,0.1);color:var(--muted);border:1px solid var(--border);}
+.fb-status.error{background:rgba(247,86,106,0.1);color:var(--red);border:1px solid rgba(247,86,106,0.2);}
 
-/* MONTH LIST */
-.month-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
-.month-row {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px; cursor: pointer;
-  display: flex; align-items: center; gap: 14px; transition: background 0.15s;
-}
-.month-row:active { background: var(--surface2); }
-.month-icon { font-size: 28px; flex-shrink: 0; }
-.month-info { flex: 1; }
-.month-label { font-family: 'Syne',sans-serif; font-size: 15px; font-weight: 800; }
-.month-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.month-total { font-family: 'Syne',sans-serif; font-size: 15px; font-weight: 800; color: var(--accent); }
-.month-arrow { color: var(--muted); font-size: 20px; }
+/* WA PREVIEW */
+.wa-preview{background:#075e54;border-radius:12px;padding:16px;font-family:'DM Sans',sans-serif;color:white;margin:12px 0;font-size:13px;line-height:1.6;white-space:pre-wrap;}
 
-/* MONTH DETAIL */
-.month-payment-card {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 14px; margin-bottom: 12px;
-}
-.month-payment-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.month-payment-icon { font-size: 24px; }
-.month-payment-name { font-family: 'Syne',sans-serif; font-size: 14px; font-weight: 700; }
-.month-payment-amount { font-family: 'Syne',sans-serif; font-size: 13px; color: var(--accent); }
-.month-payment-meta { font-size: 11px; color: var(--muted); }
-.month-files-wrap { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-.month-file-btn {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: background 0.15s;
-  width: 100%; text-align: left;
-}
-.month-file-btn:hover { background: var(--surface3); }
-.month-file-section-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 8px; }
+.no-data{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;line-height:1.6;}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:10px 20px;font-size:13px;font-weight:500;z-index:500;opacity:0;transition:all 0.3s;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* MULTI FILE UPLOAD */
-.multi-upload-area {
-  border: 2px dashed var(--border); border-radius: 12px;
-  padding: 14px; text-align: center; cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  background: var(--surface2); margin-top: 8px;
-}
-.multi-upload-area:hover { border-color: var(--accent); background: rgba(124,106,247,0.06); }
-.multi-preview-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.multi-file-item {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px;
-}
-.mfi-thumb { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.mfi-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-.mfi-info { flex: 1; min-width: 0; }
-.mfi-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mfi-size { font-size: 11px; color: var(--muted); }
-.mfi-remove { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; flex-shrink: 0; }
-.mfi-remove:hover { color: var(--red); }
-.detail-files-section { margin: 8px 0; }
-.detail-files-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.detail-file-item {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer;
-  transition: background 0.15s;
-}
-.detail-file-item:hover { background: var(--surface3); }
-
-/* SYNC MODAL */
-.sync-field-wrap { position: relative; }
-.sync-field-wrap .form-input { padding-right: 80px; }
-.sync-test-btn {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  background: var(--accent); border: none; border-radius: 8px;
-  color: white; font-size: 11px; font-weight: 700; padding: 6px 10px;
-  cursor: pointer;
-}
-
-.no-data { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
-
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* TOAST */
-.toast {
-  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--surface3); border: 1px solid var(--border);
-  color: var(--text); border-radius: 20px; padding: 10px 20px;
-  font-size: 13px; font-weight: 500; z-index: 500;
-  opacity: 0; transition: all 0.3s; white-space: nowrap;
-  max-width: 90vw; text-align: center;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* WHATSAPP PREVIEW */
-.wa-preview {
-  background: #075e54; border-radius: 12px; padding: 16px;
-  font-family: 'DM Sans', sans-serif; color: white; margin: 12px 0;
-  font-size: 13px; line-height: 1.6; white-space: pre-wrap;
-}
-
-.divider { height: 1px; background: var(--border); margin: 4px 0 12px; }
+/* LOADING SPINNER */
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
+<!-- SYNC STATUS BAR -->
+<div class="sync-bar hidden" id="sync-bar">
+  <span id="sync-bar-text">Sincronizando...</span>
+</div>
+
 <div class="app">
 
-  <!-- ===== HOME VIEW ===== -->
+  <!-- HOME VIEW -->
   <div class="view active" id="view-home">
     <header>
       <div class="header-top">
         <div class="logo">Mis<span>Pagos</span></div>
         <div class="header-right">
           <div class="badge-alert" id="badge-alert">0 vencidos</div>
-          <div class="sync-badge loading" id="sync-badge">⏳ Conectando</div>
+          <div class="firebase-dot" id="firebase-dot" title="Firebase"></div>
           <div class="month-badge" id="month-label"></div>
         </div>
       </div>
@@ -714,33 +299,23 @@ header {
       </div>
     </header>
 
-    <div class="summary" id="summary-cards">
-      <div class="sum-card danger" onclick="setFilter(null,'vencido')">
-        <div class="val" id="cnt-vencido">0</div><div class="lbl">Vencidos</div>
-      </div>
-      <div class="sum-card warn" onclick="setFilter(null,'proximo')">
-        <div class="val" id="cnt-proximo">0</div><div class="lbl">Próximos</div>
-      </div>
-      <div class="sum-card ok" onclick="setFilter(null,'pagado')">
-        <div class="val" id="cnt-pagado">0</div><div class="lbl">Pagados</div>
-      </div>
-      <div class="sum-card info" onclick="setFilter(null,'pendiente')">
-        <div class="val" id="cnt-pendiente">0</div><div class="lbl">Pendiente</div>
-      </div>
+    <div class="summary">
+      <div class="sum-card danger" onclick="setFilter(null,'vencido')"><div class="val" id="cnt-vencido">0</div><div class="lbl">Vencidos</div></div>
+      <div class="sum-card warn" onclick="setFilter(null,'proximo')"><div class="val" id="cnt-proximo">0</div><div class="lbl">Próximos</div></div>
+      <div class="sum-card ok" onclick="setFilter(null,'pagado')"><div class="val" id="cnt-pagado">0</div><div class="lbl">Pagados</div></div>
+      <div class="sum-card info" onclick="setFilter(null,'pendiente')"><div class="val" id="cnt-pendiente">0</div><div class="lbl">Pendiente</div></div>
     </div>
 
     <div class="total-bar" style="margin:0 20px 20px;">
       <div>
         <div class="t-label">Total pendiente</div>
         <div class="t-amount" id="total-pendiente">$0.00</div>
-        <div class="t-sub" id="total-sub">0 pagos sin completar</div>
+        <div class="t-sub" id="total-sub">Cargando...</div>
       </div>
       <div class="t-icon">💳</div>
     </div>
 
-    <div class="section-title" id="urgent-title" style="display:none">
-      <span>⚠️ Urgentes</span>
-    </div>
+    <div class="section-title" id="urgent-title" style="display:none"><span>⚠️ Urgentes</span></div>
     <div class="cards" id="urgent-cards"></div>
 
     <div class="section-title">
@@ -753,22 +328,16 @@ header {
       <div class="filter-tab" data-f="pendiente" onclick="setFilter(this,'pendiente')">⚪ Pendiente</div>
       <div class="filter-tab" data-f="pagado" onclick="setFilter(this,'pagado')">🟢 Pagados</div>
     </div>
-    <div class="cards" id="all-cards"></div>
+    <div class="cards" id="all-cards"><div class="no-data">⏳ Conectando con Firebase...</div></div>
   </div>
 
-  <!-- ===== GRÁFICAS VIEW ===== -->
+  <!-- CHARTS VIEW -->
   <div class="view" id="view-charts">
-    <div class="page-header">
-      <h2>📊 Análisis</h2>
-      <p>Resumen de gastos mensuales</p>
-    </div>
+    <div class="page-header"><h2>📊 Análisis</h2><p>Resumen de gastos mensuales</p></div>
     <div class="chart-section">
       <div class="chart-container">
         <div class="chart-title">Gastos por mes</div>
         <div class="chart-bars" id="monthly-bars"></div>
-        <div style="display:flex; justify-content:space-between; padding:0 2px;">
-          <span id="bar-labels" style="display:contents;"></span>
-        </div>
         <div class="chart-legend">
           <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Meses anteriores</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>Mes actual</div>
@@ -787,38 +356,41 @@ header {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px;margin-bottom:24px;" id="month-summary"></div>
   </div>
 
-  <!-- ===== HISTORIAL VIEW ===== -->
+  <!-- HISTORY VIEW -->
   <div class="view" id="view-history">
-    <div class="page-header">
-      <h2>📋 Historial</h2>
-      <p>Consulta pagos y archivos por mes o servicio</p>
-    </div>
-    <div style="padding:0 20px 16px;">
-      <div class="hist-tabs">
-        <button class="hist-tab active" id="htab-month" onclick="switchHistTab('month')">📅 Por Mes</button>
-        <button class="hist-tab" id="htab-service" onclick="switchHistTab('service')">🗂️ Por Servicio</button>
-      </div>
-    </div>
-    <div id="hist-month-list"></div>
-    <div class="service-list" id="service-list" style="display:none"></div>
+    <div class="page-header"><h2>📋 Historial</h2><p>Por servicio</p></div>
+    <div class="service-list" id="service-list"></div>
   </div>
 
-  <!-- ===== AJUSTES VIEW ===== -->
+  <!-- SETTINGS VIEW -->
   <div class="view" id="view-settings">
-    <div class="page-header">
-      <h2>⚙️ Ajustes</h2>
-      <p>Configuración y sincronización</p>
-    </div>
-    <div class="section-title"><span>Sincronización</span></div>
+    <div class="page-header"><h2>⚙️ Ajustes</h2><p>Firebase y configuración</p></div>
+
+    <div class="section-title"><span>🔥 Firebase</span></div>
     <div class="settings-section" style="margin-bottom:20px;">
-      <div class="setting-card" onclick="openSheetsModal()">
-        <div class="setting-icon">📊</div>
-        <div class="setting-info">
-          <div class="setting-title">Google Sheets Sync</div>
-          <div class="setting-desc" id="sheets-desc">Compartir datos con tu esposa en tiempo real</div>
+      <div style="padding:0 0 0 0;">
+        <div id="fb-status-card" class="fb-status disconnected">⚪ Conectando...</div>
+        <div class="setting-card" style="margin-top:0;border-radius:var(--radius);" onclick="openImportModal()">
+          <div class="setting-icon">📥</div>
+          <div class="setting-info">
+            <div class="setting-title">Importar backup</div>
+            <div class="setting-desc">Restaurar datos desde JSON a Firebase</div>
+          </div>
+          <div class="setting-arrow">›</div>
         </div>
-        <div class="setting-arrow">›</div>
+        <div class="setting-card" onclick="exportData()">
+          <div class="setting-icon">📤</div>
+          <div class="setting-info">
+            <div class="setting-title">Exportar backup</div>
+            <div class="setting-desc">Descargar copia local en JSON</div>
+          </div>
+          <div class="setting-arrow">›</div>
+        </div>
       </div>
+    </div>
+
+    <div class="section-title"><span>Notificaciones</span></div>
+    <div class="settings-section" style="margin-bottom:20px;">
       <div class="setting-card" onclick="openNotifModal()">
         <div class="setting-icon">🔔</div>
         <div class="setting-info">
@@ -828,26 +400,7 @@ header {
         <div class="setting-arrow">›</div>
       </div>
     </div>
-    <div class="section-title"><span>Datos</span></div>
-    <div class="settings-section" style="margin-bottom:20px;">
-      <div class="setting-card" onclick="exportData()">
-        <div class="setting-icon">📤</div>
-        <div class="setting-info">
-          <div class="setting-title">Exportar backup</div>
-          <div class="setting-desc">Descargar copia en JSON</div>
-        </div>
-        <div class="setting-arrow">›</div>
-      </div>
-      <div class="setting-card" onclick="document.getElementById('import-file').click()">
-        <div class="setting-icon">📥</div>
-        <div class="setting-info">
-          <div class="setting-title">Importar backup</div>
-          <div class="setting-desc">Restaurar datos desde JSON</div>
-        </div>
-        <div class="setting-arrow">›</div>
-      </div>
-      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
-    </div>
+
     <div class="section-title"><span>Seguridad</span></div>
     <div class="settings-section" style="margin-bottom:20px;">
       <div class="setting-card" onclick="toggleBiometric()">
@@ -859,7 +412,8 @@ header {
         <div class="setting-arrow" id="biometric-arrow">›</div>
       </div>
     </div>
-    <div class="section-title"><span>Instalación iPhone</span></div>
+
+    <div class="section-title"><span>iPhone</span></div>
     <div class="settings-section">
       <div class="setting-card">
         <div class="setting-icon">📲</div>
@@ -871,56 +425,27 @@ header {
     </div>
   </div>
 
-</div><!-- /app -->
+</div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" id="nav-home" onclick="switchView('home')">
-    <span class="nav-icon">🏠</span>Inicio
-  </button>
-  <button class="nav-btn" id="nav-charts" onclick="switchView('charts')">
-    <span class="nav-icon">📊</span>Análisis
-  </button>
-  <button class="nav-btn" id="nav-history" onclick="switchView('history')">
-    <span class="nav-icon">📋</span>Historial
-  </button>
-  <button class="nav-btn" id="nav-settings" onclick="switchView('settings')">
-    <span class="nav-icon">⚙️</span>Ajustes
-  </button>
+  <button class="nav-btn active" id="nav-home" onclick="switchView('home')"><span class="nav-icon">🏠</span>Inicio</button>
+  <button class="nav-btn" id="nav-charts" onclick="switchView('charts')"><span class="nav-icon">📊</span>Análisis</button>
+  <button class="nav-btn" id="nav-history" onclick="switchView('history')"><span class="nav-icon">📋</span>Historial</button>
+  <button class="nav-btn" id="nav-settings" onclick="switchView('settings')"><span class="nav-icon">⚙️</span>Ajustes</button>
 </nav>
 
 <button class="fab" onclick="openAddModal()" id="fab-btn">+</button>
 
-<!-- ===== ADD/EDIT MODAL ===== -->
+<!-- ADD/EDIT MODAL -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-title">Nuevo Pago</div>
-
-    <div class="form-group">
-      <label class="form-label">Ícono</label>
-      <div class="icon-grid" id="icon-grid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Nombre del servicio</label>
-      <input class="form-input" id="f-name" type="text" placeholder="Ej: Agua, Netflix...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Monto a pagar ($)</label>
-      <input class="form-input" id="f-amount" type="number" step="0.01" placeholder="0.00">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Estado de cuenta ($) <span style="color:var(--muted);font-weight:400;font-size:11px;">— saldo actual</span></label>
-      <input class="form-input" id="f-balance" type="number" step="0.01" placeholder="0.00">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Fecha de corte</label>
-      <input class="form-input" id="f-cutdate" type="date">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Fecha de vencimiento</label>
-      <input class="form-input" id="f-due" type="date">
-    </div>
+    <div class="form-group"><label class="form-label">Ícono</label><div class="icon-grid" id="icon-grid"></div></div>
+    <div class="form-group"><label class="form-label">Nombre del servicio</label><input class="form-input" id="f-name" type="text" placeholder="Ej: Agua, Netflix..."></div>
+    <div class="form-group"><label class="form-label">Monto ($)</label><input class="form-input" id="f-amount" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">Fecha de vencimiento</label><input class="form-input" id="f-due" type="date"></div>
     <div class="form-group">
       <label class="form-label">Categoría</label>
       <select class="form-select" id="f-category">
@@ -943,71 +468,35 @@ header {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">📄 Estado de Cuenta / Planilla <span style="color:var(--muted);font-size:11px;font-weight:400;">máx. 2 archivos</span></label>
-      <div class="multi-upload-area" id="estado-upload-area" onclick="triggerUpload('f-estado')">
-        <input type="file" id="f-estado" accept="image/*,application/pdf" multiple style="display:none" onchange="onMultiFileSelected(event,'estado')">
-        <div class="file-upload-icon">📑</div>
-        <div class="file-upload-text"><strong>Seleccionar archivo(s)</strong><br>Imagen o PDF · máx 2</div>
-      </div>
-      <div id="estado-preview-wrap" class="multi-preview-wrap"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">🧾 Comprobante de pago <span style="color:var(--muted);font-size:11px;font-weight:400;">máx. 2 archivos</span></label>
-      <button class="camera-btn" onclick="openCameraFor('comprobante')">📸 Tomar foto con cámara</button>
-      <div class="multi-upload-area" id="comprobante-upload-area" onclick="triggerUpload('f-comprobante')">
-        <input type="file" id="f-comprobante" accept="image/*,application/pdf" multiple style="display:none" onchange="onMultiFileSelected(event,'comprobante')">
-        <input type="file" id="f-camera" accept="image/*" capture="environment" style="display:none" onchange="onCameraCapture(event)">
+      <label class="form-label">Comprobante</label>
+      <button class="camera-btn" onclick="openCamera()">📸 Tomar foto con cámara</button>
+      <div class="file-upload-area" id="file-upload-area">
+        <input type="file" id="f-file" accept="image/*,application/pdf" onchange="onFileSelected(event)">
         <div class="file-upload-icon">📎</div>
-        <div class="file-upload-text"><strong>Seleccionar archivo(s)</strong><br>Imagen o PDF · máx 2</div>
+        <div class="file-upload-text"><strong>Seleccionar archivo</strong><br>Imagen o PDF</div>
       </div>
-      <div id="comprobante-preview-wrap" class="multi-preview-wrap"></div>
+      <div id="file-preview-wrap" style="display:none"></div>
+      <input type="file" id="f-camera" accept="image/*" capture="environment" style="display:none" onchange="onCameraCapture(event)">
     </div>
-    <div class="form-group">
-      <label class="form-label">Notas (opcional)</label>
-      <input class="form-input" id="f-notes" type="text" placeholder="Ej: Pagar antes del 15">
-    </div>
-
-    <button class="btn-primary" onclick="savePayment()">Guardar</button>
+    <div class="form-group"><label class="form-label">Notas (opcional)</label><input class="form-input" id="f-notes" type="text" placeholder="Ej: Pagar antes del 15"></div>
+    <button class="btn-primary" onclick="savePayment()">Guardar en Firebase ☁️</button>
     <button class="btn-danger" id="btn-delete" style="display:none" onclick="deletePayment()">Eliminar pago</button>
     <button class="btn-action" style="margin-top:8px;width:100%;" onclick="closeModal()">Cancelar</button>
   </div>
 </div>
 
-<!-- ===== DETAIL MODAL ===== -->
+<!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detail-modal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="detail-header">
       <div class="detail-icon-wrap" id="d-icon"></div>
-      <div>
-        <div class="detail-name" id="d-name"></div>
-        <div class="detail-cat" id="d-cat"></div>
-      </div>
+      <div><div class="detail-name" id="d-name"></div><div class="detail-cat" id="d-cat"></div></div>
     </div>
-    <div class="detail-amount">
-      <div class="lbl">Monto a pagar</div>
-      <div class="big" id="d-amount"></div>
-    </div>
-    <div class="detail-row">
-      <span class="dr-label">Estado</span>
-      <span class="dr-val" id="d-status"></span>
-    </div>
-    <div class="detail-row" id="d-balance-row" style="display:none">
-      <span class="dr-label">Estado de cuenta</span>
-      <span class="dr-val" id="d-balance"></span>
-    </div>
-    <div class="detail-row" id="d-cutdate-row" style="display:none">
-      <span class="dr-label">Fecha de corte</span>
-      <span class="dr-val" id="d-cutdate"></span>
-    </div>
-    <div class="detail-row">
-      <span class="dr-label">Vencimiento</span>
-      <span class="dr-val" id="d-due"></span>
-    </div>
-    <div class="detail-row" id="d-notes-row" style="display:none">
-      <span class="dr-label">Notas</span>
-      <span class="dr-val" id="d-notes"></span>
-    </div>
+    <div class="detail-amount"><div class="lbl">Monto a pagar</div><div class="big" id="d-amount"></div></div>
+    <div class="detail-row"><span class="dr-label">Estado</span><span class="dr-val" id="d-status"></span></div>
+    <div class="detail-row"><span class="dr-label">Vencimiento</span><span class="dr-val" id="d-due"></span></div>
+    <div class="detail-row" id="d-notes-row" style="display:none"><span class="dr-label">Notas</span><span class="dr-val" id="d-notes"></span></div>
     <div id="d-comprobante-wrap"></div>
     <div class="actions-row">
       <button class="btn-action mark-paid" onclick="markPaidFromDetail()">✅ Pagado</button>
@@ -1018,7 +507,7 @@ header {
   </div>
 </div>
 
-<!-- ===== SERVICE HISTORY MODAL ===== -->
+<!-- SERVICE HISTORY MODAL -->
 <div class="modal-overlay" id="srv-history-modal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -1028,110 +517,45 @@ header {
   </div>
 </div>
 
-<!-- ===== MONTH HISTORY MODAL ===== -->
-<div class="modal-overlay" id="month-history-modal">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="month-history-title"></div>
-    <div id="month-history-content"></div>
-    <button class="btn-action" style="width:100%;margin-top:12px;" onclick="closeMonthHistory()">Cerrar</button>
-  </div>
-</div>
-
-<!-- ===== GOOGLE SHEETS MODAL ===== -->
-<div class="modal-overlay" id="sheets-modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📊 Google Sheets Sync</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-      Conecta con Google Sheets para que tú y tu esposa vean los mismos datos en tiempo real desde cualquier iPhone.
-    </p>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
-      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:10px;">📋 Cómo configurar:</div>
-      <div class="notif-steps">
-        <div class="notif-step">
-          <div class="notif-num">1</div>
-          <div class="notif-text">Ve a <strong>sheets.google.com</strong> y crea una hoja nueva llamada <strong>"MisPagos"</strong></div>
-        </div>
-        <div class="notif-step">
-          <div class="notif-num">2</div>
-          <div class="notif-text">En la hoja, ve a <strong>Extensiones → Apps Script</strong></div>
-        </div>
-        <div class="notif-step">
-          <div class="notif-num">3</div>
-          <div class="notif-text">Pega el código que aparece abajo y dale clic en <strong>Implementar → Nueva implementación → Aplicación web</strong>. Copia la URL.</div>
-        </div>
-        <div class="notif-step">
-          <div class="notif-num">4</div>
-          <div class="notif-text">Pega la URL aquí abajo y comparte la hoja con el email de tu esposa</div>
-        </div>
-      </div>
-    </div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px;font-size:11px;color:var(--muted);font-family:monospace;overflow-x:auto;white-space:pre-wrap;line-height:1.5;">function doPost(e){
-  var lock=LockService.getScriptLock();lock.tryLock(10000);
-  try{var s=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var d=JSON.parse(e.postData.contents);s.clearContents();
-  s.appendRow(["id","nombre","monto","estado","vencimiento","categoria","notas","fecha_pago","icono"]);
-  d.forEach(function(r){s.appendRow([r.id,r.name,r.amount||"",r.status,r.due||"",r.category,r.notes||"",r.paid_date||"",r.icon]);});
-  }finally{lock.releaseLock();}
-  return ContentService.createTextOutput(JSON.stringify({result:"ok"})).setMimeType(ContentService.MimeType.JSON);
-}
-function doGet(e){
-  var s=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var rows=s.getDataRange().getValues();rows.shift();
-  var data=rows.map(function(r){return{id:r[0],name:r[1],amount:r[2],status:r[3],due:r[4],category:r[5],notes:r[6],paid_date:r[7],icon:r[8]};});
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
-}</div>
-    <div class="form-group">
-      <label class="form-label">URL del Web App de Google</label>
-      <div class="sync-field-wrap">
-        <input class="form-input" id="sheets-url" type="url" placeholder="https://script.google.com/...">
-        <button class="sync-test-btn" onclick="testSheetsConnection()">Probar</button>
-      </div>
-    </div>
-    <div id="sheets-status-display"></div>
-    <button class="btn-primary" onclick="saveSheetsConfig()">Guardar y sincronizar</button>
-    <button class="btn-action" style="width:100%;margin-top:8px;" onclick="closeSheetsModal()">Cancelar</button>
-  </div>
-</div>
-
-<!-- ===== NOTIFICATIONS MODAL ===== -->
+<!-- NOTIFICATIONS MODAL -->
 <div class="modal-overlay" id="notif-modal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">🔔 Notificaciones Push</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
-      Recibe alertas automáticas en tu iPhone cuando un pago está próximo a vencer.
-    </p>
     <div class="notif-steps">
-      <div class="notif-step">
-        <div class="notif-num">1</div>
-        <div class="notif-text">Primero <strong>instala la app en tu pantalla de inicio</strong>: Safari → Compartir 📤 → "Agregar a pantalla de inicio"</div>
-      </div>
-      <div class="notif-step">
-        <div class="notif-num">2</div>
-        <div class="notif-text">Abre la app desde el ícono en tu pantalla de inicio (no desde Safari)</div>
-      </div>
-      <div class="notif-step">
-        <div class="notif-num">3</div>
-        <div class="notif-text">Toca el botón de abajo — el iPhone te pedirá permiso para enviar notificaciones</div>
-      </div>
+      <div class="notif-step"><div class="notif-num">1</div><div class="notif-text">Instala la app en pantalla de inicio: Safari → Compartir 📤 → <strong>"Agregar a pantalla de inicio"</strong></div></div>
+      <div class="notif-step"><div class="notif-num">2</div><div class="notif-text">Abre desde el ícono en tu pantalla de inicio <strong>(no desde Safari)</strong></div></div>
+      <div class="notif-step"><div class="notif-num">3</div><div class="notif-text">Toca el botón de abajo — el iPhone pedirá permiso</div></div>
     </div>
-    <button class="btn-primary" onclick="requestNotifications()" style="margin-top:16px;" id="btn-request-notif">🔔 Activar notificaciones</button>
+    <button class="btn-primary" onclick="requestNotifications()" style="margin-top:16px;">🔔 Activar notificaciones</button>
     <div id="notif-status" style="margin-top:10px;text-align:center;font-size:12px;color:var(--muted);"></div>
     <button class="btn-action" style="width:100%;margin-top:8px;" onclick="closeNotifModal()">Cerrar</button>
   </div>
 </div>
 
-<!-- ===== WHATSAPP MODAL ===== -->
+<!-- WHATSAPP MODAL -->
 <div class="modal-overlay" id="wa-modal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">💬 Compartir por WhatsApp</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Vista previa del mensaje:</p>
     <div class="wa-preview" id="wa-preview"></div>
     <button class="btn-primary" onclick="sendWhatsApp()">Abrir WhatsApp</button>
     <button class="btn-action" style="width:100%;margin-top:8px;" onclick="closeWaModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📥 Importar backup a Firebase</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">Selecciona el archivo <strong>mispagos_backup.json</strong> que exportaste antes. Los datos se guardarán en Firebase y se sincronizarán con todos los dispositivos.</p>
+    <div class="file-upload-area" style="margin-bottom:16px;">
+      <input type="file" id="import-json-file" accept=".json" onchange="importData(event)">
+      <div class="file-upload-icon">📁</div>
+      <div class="file-upload-text"><strong>Seleccionar archivo JSON</strong><br>mispagos_backup.json</div>
+    </div>
+    <button class="btn-action" style="width:100%;" onclick="closeImportModal()">Cancelar</button>
   </div>
 </div>
 
@@ -1141,28 +565,41 @@ function doGet(e){
   <img id="img-viewer-src" src="" alt="Comprobante">
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script>
-// ===================== CONSTANTS =====================
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, set, onValue, remove, push, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyA5Pa4Vi17YUS6jO23esl-v5AOjFr-X11Q",
+  authDomain: "monitor-cnel.firebaseapp.com",
+  databaseURL: "https://monitor-cnel-default-rtdb.firebaseio.com",
+  projectId: "monitor-cnel",
+  storageBucket: "monitor-cnel.firebasestorage.app",
+  messagingSenderId: "413207786291",
+  appId: "1:413207786291:web:d49cc5b9a80e205ce7c446"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const PAGOS_REF = 'mispagos/pagos';
+
+// ===== CONSTANTS =====
 const ICONS = ['💧','⚡','📡','👗','🛍️','📺','💳','🏠','🏥','🚗','📱','🎓','🔌','🌐','💰','🧾','🏦','📦','🎮','✈️','🍔','💄','🌊','☀️','❄️'];
-const STORAGE_KEY = 'mispagos_v2';
-const SHEETS_KEY = 'mispagos_sheets_url';
 const BIOMETRIC_KEY = 'mispagos_biometric';
 
-// ⬇️ PEGA AQUÍ LA URL DEL NUEVO DEPLOYMENT (después del paso 4)
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxVHFiXbsgZNyaWXgXWQddMSPI_mffjsSQQzbqXGj8gjtrG4qP58ElN9XzBFlGhZdAwKw/exec';
-
 const DEFAULT_PAYMENTS = [
-  { id:1, icon:'💧', name:'Agua (Interagua)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'interagua.com.ec', paid_date:null, file:null, fileName:null },
-  { id:2, icon:'⚡', name:'Electricidad (CNEL)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'cnel.gob.ec', paid_date:null, file:null, fileName:null },
-  { id:3, icon:'🌐', name:'Internet (Xtrim)', amount:null, due:null, status:'pendiente', category:'Servicios básicos', notes:'xtrim.net', paid_date:null, file:null, fileName:null },
-  { id:4, icon:'👗', name:'ETA Fashion', amount:null, due:null, status:'pendiente', category:'Crédito / Compras', notes:'consultacredito.etafashion.com', paid_date:null, file:null, fileName:null },
-  { id:5, icon:'🛍️', name:'Rebaja Moda (RM)', amount:null, due:null, status:'pendiente', category:'Crédito / Compras', notes:'tiendec.rebajamoda.com', paid_date:null, file:null, fileName:null },
-  { id:6, icon:'🛍️', name:'De Prati', amount:null, due:null, status:'pendiente', category:'Crédito / Compras', notes:'deprati.com', paid_date:null, file:null, fileName:null },
-  { id:7, icon:'📺', name:'DirecTV', amount:null, due:null, status:'pendiente', category:'Entretenimiento', notes:'directv.com.ec', paid_date:null, file:null, fileName:null },
-  { id:8, icon:'💳', name:'Tarjeta de Crédito', amount:null, due:null, status:'pendiente', category:'Tarjeta de crédito', notes:'', paid_date:null, file:null, fileName:null },
+  {id:'pay_1',icon:'💧',name:'Agua (Interagua)',amount:null,due:null,status:'pendiente',category:'Servicios básicos',notes:'interagua.com.ec',paid_date:null,file:null,fileName:null},
+  {id:'pay_2',icon:'⚡',name:'Electricidad (CNEL)',amount:null,due:null,status:'pendiente',category:'Servicios básicos',notes:'cnel.gob.ec',paid_date:null,file:null,fileName:null},
+  {id:'pay_3',icon:'🌐',name:'Internet (Xtrim)',amount:null,due:null,status:'pendiente',category:'Servicios básicos',notes:'xtrim.net',paid_date:null,file:null,fileName:null},
+  {id:'pay_4',icon:'👗',name:'ETA Fashion',amount:null,due:null,status:'pendiente',category:'Crédito / Compras',notes:'consultacredito.etafashion.com',paid_date:null,file:null,fileName:null},
+  {id:'pay_5',icon:'🛍️',name:'Rebaja Moda (RM)',amount:null,due:null,status:'pendiente',category:'Crédito / Compras',notes:'tiendec.rebajamoda.com',paid_date:null,file:null,fileName:null},
+  {id:'pay_6',icon:'🛍️',name:'De Prati',amount:null,due:null,status:'pendiente',category:'Crédito / Compras',notes:'deprati.com',paid_date:null,file:null,fileName:null},
+  {id:'pay_7',icon:'📺',name:'DirecTV',amount:null,due:null,status:'pendiente',category:'Entretenimiento',notes:'directv.com.ec',paid_date:null,file:null,fileName:null},
+  {id:'pay_8',icon:'💳',name:'Tarjeta de Crédito',amount:null,due:null,status:'pendiente',category:'Tarjeta de crédito',notes:'',paid_date:null,file:null,fileName:null},
 ];
 
 let payments = [];
@@ -1172,128 +609,121 @@ let currentFilter = 'todos';
 let searchQuery = '';
 let currentFileData = null;
 let currentFileName = null;
-let sheetsUrl = '';
+let fbConnected = false;
 
-// ===================== SYNC STATUS =====================
-function showSyncStatus(msg, type='loading') {
-  const el = document.getElementById('sync-badge');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'sync-badge ' + type;
-}
-
-// ===================== INIT =====================
-async function load() {
-  sheetsUrl = localStorage.getItem(SHEETS_KEY) || '';
-  if (sheetsUrl) document.getElementById('sheets-desc').textContent = '✅ Conectado';
-  updateBiometricUI();
-
-  const cloudReady = CLOUD_URL && CLOUD_URL !== 'PEGAR_URL_AQUI';
-
-  if (cloudReady) {
-    showSyncStatus('⏳ Cargando...', 'loading');
-    try {
-      const json = await fetchJsonp(CLOUD_URL);
-      if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
-        // Merge cloud data with local files (los archivos se guardan solo local)
-        const localRaw = localStorage.getItem(STORAGE_KEY);
-        const localList = localRaw ? JSON.parse(localRaw) : [];
-        payments = json.data.map(sp => {
-          const lp = localList.find(l => l.id === sp.id);
-          if (lp) return { ...sp, file: lp.file||null, fileName: lp.fileName||null, estadoFiles: lp.estadoFiles||[], comprobanteFiles: lp.comprobanteFiles||[] };
-          return sp;
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
-        showSyncStatus('✅ En línea', 'ok');
-      } else if (json.ok && json.data.length === 0) {
-        // Nube vacía — usar local si existe
-        const raw = localStorage.getItem(STORAGE_KEY);
-        payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
-        showSyncStatus('✅ En línea', 'ok');
-        if (payments.length > 0) save(); // subir datos locales a la nube
-      } else {
-        throw new Error('Respuesta inválida');
-      }
-    } catch(e) {
-      showSyncStatus('⚠️ Sin conexión', 'offline');
-      const raw = localStorage.getItem(STORAGE_KEY);
-      payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
-    }
+// ===== FIREBASE CONNECTION =====
+function setFbStatus(status) {
+  fbConnected = status === 'connected';
+  const dot = document.getElementById('firebase-dot');
+  const card = document.getElementById('fb-status-card');
+  if (status === 'connected') {
+    dot.className = 'firebase-dot connected';
+    card.className = 'fb-status connected';
+    card.textContent = '🟢 Firebase conectado — datos en tiempo real';
+  } else if (status === 'error') {
+    dot.className = 'firebase-dot error';
+    card.className = 'fb-status error';
+    card.textContent = '🔴 Error de conexión con Firebase';
   } else {
-    showSyncStatus('📱 Local', 'offline');
-    const raw = localStorage.getItem(STORAGE_KEY);
-    payments = raw ? JSON.parse(raw) : DEFAULT_PAYMENTS.map(p=>({...p}));
+    dot.className = 'firebase-dot';
+    card.className = 'fb-status disconnected';
+    card.textContent = '⚪ Conectando con Firebase...';
   }
-
-  // Auto-refresh cada 60 segundos
-  if (cloudReady) setInterval(refreshFromCloud, 60000);
 }
 
-async function refreshFromCloud() {
-  if (!CLOUD_URL || CLOUD_URL === 'PEGAR_URL_AQUI') return;
-  try {
-    const json = await fetchJsonp(CLOUD_URL);
-    if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
-      const localRaw = localStorage.getItem(STORAGE_KEY);
-      const localList = localRaw ? JSON.parse(localRaw) : [];
-      payments = json.data.map(sp => {
-        const lp = localList.find(l => l.id === sp.id);
-        if (lp) return { ...sp, file: lp.file||null, fileName: lp.fileName||null, estadoFiles: lp.estadoFiles||[], comprobanteFiles: lp.comprobanteFiles||[] };
-        return sp;
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
-      renderHome();
-      showSyncStatus('✅ En línea', 'ok');
+function showSyncBar(type, text) {
+  const bar = document.getElementById('sync-bar');
+  const txt = document.getElementById('sync-bar-text');
+  bar.className = 'sync-bar ' + type;
+  txt.textContent = text;
+  if (type === 'synced') {
+    setTimeout(() => bar.className = 'sync-bar hidden', 2000);
+  }
+}
+
+// ===== REALTIME LISTENER =====
+function startListening() {
+  const pagosRef = ref(db, PAGOS_REF);
+  onValue(pagosRef, (snapshot) => {
+    setFbStatus('connected');
+    const data = snapshot.val();
+    if (data) {
+      payments = Object.values(data).filter(p => p && p.id);
+    } else {
+      // First time — load defaults
+      payments = DEFAULT_PAYMENTS.map(p => ({...p}));
+      saveAllToFirebase();
     }
-  } catch(e) { showSyncStatus('⚠️ Sin conexión', 'offline'); }
-}
-
-// JSONP — evita bloqueo CORS de Google Apps Script
-function fetchJsonp(url) {
-  return new Promise((resolve, reject) => {
-    const cb = 'mp_cb_' + Date.now();
-    const script = document.createElement('script');
-    const timer = setTimeout(() => {
-      delete window[cb]; script.remove();
-      reject(new Error('Timeout'));
-    }, 12000);
-    window[cb] = (data) => {
-      clearTimeout(timer); delete window[cb]; script.remove();
-      resolve(data);
-    };
-    const sep = url.includes('?') ? '&' : '?';
-    script.src = url + sep + 'callback=' + cb;
-    script.onerror = () => { clearTimeout(timer); delete window[cb]; script.remove(); reject(new Error('Error')); };
-    document.head.appendChild(script);
+    renderHome();
+    scheduleNotifications();
+  }, (error) => {
+    setFbStatus('error');
+    showToast('❌ Error Firebase: ' + error.message);
+    // Fallback to localStorage
+    const raw = localStorage.getItem('mispagos_v2');
+    if (raw) payments = JSON.parse(raw);
+    renderHome();
   });
 }
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
-  if (CLOUD_URL && CLOUD_URL !== 'PEGAR_URL_AQUI') {
-    syncToCloud();
-  } else if (sheetsUrl) {
-    syncToSheets();
+async function saveAllToFirebase() {
+  showSyncBar('syncing', '☁️ Sincronizando...');
+  try {
+    const pagosRef = ref(db, PAGOS_REF);
+    const obj = {};
+    payments.forEach(p => { obj[p.id] = cleanPayment(p); });
+    await set(pagosRef, obj);
+    // Also save to localStorage as fallback
+    localStorage.setItem('mispagos_v2', JSON.stringify(payments));
+    showSyncBar('synced', '✅ Sincronizado');
+  } catch(e) {
+    showSyncBar('error', '❌ Error al sincronizar');
+    showToast('❌ No se pudo guardar en Firebase');
   }
 }
 
-function syncToCloud() {
-  showSyncStatus('⏳ Guardando...', 'loading');
-  const cloudData = payments.map(p => {
-    const c = { ...p };
-    delete c.file; delete c.fileName;
-    delete c.estadoFiles; delete c.comprobanteFiles;
-    return c;
-  });
-  const dataStr = encodeURIComponent(JSON.stringify(cloudData));
-  const saveUrl = CLOUD_URL + '?data=' + dataStr;
-  fetchJsonp(saveUrl)
-    .then(() => showSyncStatus('✅ Guardado', 'ok'))
-    .catch(() => showSyncStatus('⚠️ Error al guardar', 'error'));
+async function saveOneToFirebase(payment) {
+  showSyncBar('syncing', '☁️ Guardando...');
+  try {
+    const pRef = ref(db, PAGOS_REF + '/' + payment.id);
+    await set(pRef, cleanPayment(payment));
+    localStorage.setItem('mispagos_v2', JSON.stringify(payments));
+    showSyncBar('synced', '✅ Guardado en Firebase');
+  } catch(e) {
+    showSyncBar('error', '❌ Error al guardar');
+    showToast('❌ Error: ' + e.message);
+  }
 }
 
-// ===================== VIEWS =====================
-function switchView(name) {
+async function deleteFromFirebase(id) {
+  try {
+    const pRef = ref(db, PAGOS_REF + '/' + id);
+    await remove(pRef);
+    localStorage.setItem('mispagos_v2', JSON.stringify(payments));
+    showSyncBar('synced', '🗑️ Eliminado');
+  } catch(e) {
+    showToast('❌ Error al eliminar');
+  }
+}
+
+function cleanPayment(p) {
+  return {
+    id: p.id,
+    icon: p.icon || '💳',
+    name: p.name || '',
+    amount: p.amount || null,
+    due: p.due || null,
+    status: p.status || 'pendiente',
+    category: p.category || 'Otros',
+    notes: p.notes || '',
+    paid_date: p.paid_date || null,
+    file: p.file || null,
+    fileName: p.fileName || null
+  };
+}
+
+// ===== VIEWS =====
+window.switchView = function(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
@@ -1304,7 +734,7 @@ function switchView(name) {
   if (name==='history') renderHistory();
 }
 
-// ===================== AUTO STATUS =====================
+// ===== AUTO STATUS =====
 function autoStatus() {
   const now = new Date();
   payments.forEach(p=>{
@@ -1318,7 +748,7 @@ function autoStatus() {
   });
 }
 
-// ===================== RENDER HOME =====================
+// ===== RENDER HOME =====
 function renderHome() {
   autoStatus();
   const now = new Date();
@@ -1335,31 +765,23 @@ function renderHome() {
   document.getElementById('cnt-pagado').textContent = pagados;
   document.getElementById('cnt-pendiente').textContent = pendientes;
 
-  // Badge
   const badge = document.getElementById('badge-alert');
-  if (vencidos > 0) {
-    badge.style.display = 'block';
-    badge.textContent = vencidos+' vencido'+(vencidos>1?'s':'');
-  } else { badge.style.display = 'none'; }
+  if (vencidos>0) { badge.style.display='block'; badge.textContent=vencidos+' vencido'+(vencidos>1?'s':''); }
+  else badge.style.display='none';
 
   const unpaid = payments.filter(p=>p.status!=='pagado');
   const total = unpaid.reduce((s,p)=>s+(p.amount||0),0);
   document.getElementById('total-pendiente').textContent = '$'+total.toFixed(2);
   document.getElementById('total-sub').textContent = unpaid.length+' pago'+(unpaid.length!==1?'s':'')+' sin completar';
 
-  // Urgent
   const urgent = payments.filter(p=>p.status==='vencido'||p.status==='proximo');
   const urgentEl = document.getElementById('urgent-cards');
   const urgentTitle = document.getElementById('urgent-title');
-  if (urgent.length > 0 && currentFilter==='todos' && !searchQuery) {
-    urgentTitle.style.display = 'flex';
+  if (urgent.length>0 && currentFilter==='todos' && !searchQuery) {
+    urgentTitle.style.display='flex';
     urgentEl.innerHTML = urgent.map((p,i)=>cardHTML(p,i*0.04)).join('');
-  } else {
-    urgentTitle.style.display = 'none';
-    urgentEl.innerHTML = '';
-  }
+  } else { urgentTitle.style.display='none'; urgentEl.innerHTML=''; }
 
-  // Filtered + search
   let filtered = [...payments];
   if (currentFilter!=='todos') filtered = filtered.filter(p=>p.status===currentFilter);
   if (searchQuery) {
@@ -1368,10 +790,8 @@ function renderHome() {
   } else {
     document.getElementById('all-title').textContent = 'Todos los pagos';
   }
-
   const order = {vencido:0,proximo:1,pendiente:2,pagado:3};
   filtered.sort((a,b)=>(order[a.status]||2)-(order[b.status]||2));
-
   document.getElementById('all-cards').innerHTML = filtered.length
     ? filtered.map((p,i)=>cardHTML(p,i*0.035)).join('')
     : '<div class="no-data">Sin pagos en esta categoría</div>';
@@ -1384,16 +804,13 @@ function cardHTML(p, delay=0) {
     : `<div class="card-amount no-amount">Sin monto</div>`;
   const dueLabel = p.due ? formatDue(p.due) : 'Sin fecha';
   const pills = {vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
-  return `<div class="card ${p.status}" style="animation-delay:${delay}s" onclick="openDetail(${p.id})">
+  return `<div class="card ${p.status}" style="animation-delay:${delay}s" onclick="openDetail('${p.id}')">
     <div class="card-icon">${p.icon}${hasFile}</div>
     <div class="card-info">
       <div class="card-name">${p.name}</div>
       <div class="card-sub">${p.category} · ${dueLabel}</div>
     </div>
-    <div class="card-right">
-      ${amountHTML}
-      <div class="status-pill ${p.status}">${pills[p.status]}</div>
-    </div>
+    <div class="card-right">${amountHTML}<div class="status-pill ${p.status}">${pills[p.status]}</div></div>
   </div>`;
 }
 
@@ -1408,831 +825,372 @@ function formatDue(ds) {
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 }
 
-function setFilter(el, f) {
-  if (el) {
-    document.querySelectorAll('#home-filters .filter-tab').forEach(t=>t.classList.remove('active'));
-    el.classList.add('active');
-  } else {
-    document.querySelectorAll('#home-filters .filter-tab').forEach(t=>{
-      t.classList.toggle('active', t.dataset.f===f);
-    });
-    switchView('home');
-  }
-  currentFilter = f;
-  renderHome();
+window.setFilter = function(el, f) {
+  if (el) { document.querySelectorAll('#home-filters .filter-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
+  else { document.querySelectorAll('#home-filters .filter-tab').forEach(t=>{ t.classList.toggle('active', t.dataset.f===f); }); switchView('home'); }
+  currentFilter = f; renderHome();
 }
 
-// ===================== SEARCH =====================
-function onSearch(inp) {
+window.onSearch = function(inp) {
   searchQuery = inp.value.toLowerCase().trim();
-  document.getElementById('search-clear').style.display = searchQuery ? 'block' : 'none';
+  document.getElementById('search-clear').style.display = searchQuery?'block':'none';
   renderHome();
 }
-function clearSearch() {
-  document.getElementById('search-input').value = '';
-  searchQuery = '';
-  document.getElementById('search-clear').style.display = 'none';
+window.clearSearch = function() {
+  document.getElementById('search-input').value='';
+  searchQuery='';
+  document.getElementById('search-clear').style.display='none';
   renderHome();
 }
 
-// ===================== CHARTS =====================
+// ===== CHARTS =====
 function renderCharts() {
   autoStatus();
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-
-  // Build 6-month data from paid_date
   const monthData = [];
-  for (let i=5; i>=0; i--) {
-    let m = currentMonth - i;
-    let y = currentYear;
-    if (m < 0) { m += 12; y--; }
-    const total = payments
-      .filter(p => {
-        if (p.paid_date) {
-          const pd = new Date(p.paid_date);
-          return pd.getMonth()===m && pd.getFullYear()===y;
-        }
-        // Current month: count amounts with status != pagado
-        if (i===0 && p.amount) return true;
-        return false;
-      })
-      .reduce((s,p)=>s+(p.amount||0),0);
-    const mNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    monthData.push({ label: mNames[m], total, isCurrent: i===0 });
+  for (let i=5;i>=0;i--) {
+    let m=currentMonth-i, y=currentYear;
+    if (m<0){m+=12;y--;}
+    const total = payments.filter(p=>{
+      if (p.paid_date){const pd=new Date(p.paid_date);return pd.getMonth()===m&&pd.getFullYear()===y;}
+      if (i===0&&p.amount) return true;
+      return false;
+    }).reduce((s,p)=>s+(p.amount||0),0);
+    const mNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    monthData.push({label:mNames[m],total,isCurrent:i===0});
   }
-
-  const maxVal = Math.max(...monthData.map(d=>d.total), 1);
-  const barsEl = document.getElementById('monthly-bars');
-  barsEl.innerHTML = monthData.map(d=>`
+  const maxVal = Math.max(...monthData.map(d=>d.total),1);
+  document.getElementById('monthly-bars').innerHTML = monthData.map(d=>`
     <div class="bar-wrap">
       <div class="bar-val">$${d.total>0?d.total.toFixed(0):''}</div>
       <div class="bar ${d.isCurrent?'current':''}" style="height:${Math.max((d.total/maxVal)*100,3)}%"></div>
       <div class="bar-lbl">${d.label}</div>
     </div>`).join('');
-
-  // Category breakdown
-  const cats = {};
-  payments.filter(p=>p.status!=='pagado'&&p.amount).forEach(p=>{
-    cats[p.category] = (cats[p.category]||0) + p.amount;
-  });
-  const totalCat = Object.values(cats).reduce((a,b)=>a+b,0)||1;
-  const sortedCats = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const cats={};
+  payments.filter(p=>p.status!=='pagado'&&p.amount).forEach(p=>{cats[p.category]=(cats[p.category]||0)+p.amount;});
+  const totalCat=Object.values(cats).reduce((a,b)=>a+b,0)||1;
+  const sortedCats=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   document.getElementById('cat-breakdown').innerHTML = sortedCats.map(([k,v])=>`
     <div class="cat-row">
       <div class="cat-name">${k}</div>
       <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:${(v/totalCat*100).toFixed(0)}%"></div></div>
       <div class="cat-amount">$${v.toFixed(2)}</div>
-    </div>`).join('') || '<div class="no-data">Sin datos de montos aún</div>';
-
-  // Month summary cards
-  const pending = payments.filter(p=>p.status!=='pagado');
-  const totalPending = pending.reduce((s,p)=>s+(p.amount||0),0);
-  const totalPaid = payments.filter(p=>p.status==='pagado').reduce((s,p)=>s+(p.amount||0),0);
-  document.getElementById('month-summary').innerHTML = `
+    </div>`).join('')||'<div class="no-data">Sin montos registrados aún</div>';
+  const pending=payments.filter(p=>p.status!=='pagado');
+  const totalPending=pending.reduce((s,p)=>s+(p.amount||0),0);
+  const totalPaid=payments.filter(p=>p.status==='pagado').reduce((s,p)=>s+(p.amount||0),0);
+  document.getElementById('month-summary').innerHTML=`
     <div class="sum-card danger"><div class="val">$${totalPending.toFixed(0)}</div><div class="lbl">Por pagar</div></div>
     <div class="sum-card ok"><div class="val">$${totalPaid.toFixed(0)}</div><div class="lbl">Pagado</div></div>`;
 }
 
-// ===================== HISTORY =====================
-let currentHistTab = 'month';
-
-function switchHistTab(tab) {
-  currentHistTab = tab;
-  document.getElementById('htab-month').classList.toggle('active', tab==='month');
-  document.getElementById('htab-service').classList.toggle('active', tab==='service');
-  document.getElementById('hist-month-list').style.display = tab==='month' ? 'block' : 'none';
-  document.getElementById('service-list').style.display = tab==='service' ? 'flex' : 'none';
-  if (tab==='month') renderHistoryByMonth();
-  else renderHistoryByService();
-}
-
+// ===== HISTORY =====
 function renderHistory() {
-  if (currentHistTab==='month') renderHistoryByMonth();
-  else renderHistoryByService();
-}
-
-function renderHistoryByMonth() {
-  const el = document.getElementById('hist-month-list');
-  document.getElementById('hist-month-list').style.display = 'block';
-  document.getElementById('service-list').style.display = 'none';
-
-  if (payments.length===0) {
-    el.innerHTML = '<div class="no-data">Sin pagos registrados</div>';
-    return;
-  }
-
-  // Agrupar por mes usando due o paid_date
-  const months = {};
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  payments.forEach(p => {
-    const dateStr = p.paid_date || p.due || null;
-    if (!dateStr) {
-      const key = 'sin-fecha';
-      if (!months[key]) months[key] = { label: 'Sin fecha', payments: [], total: 0, files: 0 };
-      months[key].payments.push(p);
-      return;
-    }
-    const d = new Date(dateStr + 'T12:00:00');
-    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    const label = MESES[d.getMonth()] + ' ' + d.getFullYear();
-    if (!months[key]) months[key] = { label, payments: [], total: 0, files: 0 };
-    months[key].payments.push(p);
-    if (p.amount) months[key].total += Number(p.amount);
-    const eFiles = (p.estadoFiles||[]).length;
-    const cFiles = (p.comprobanteFiles||[]).length + ((!p.comprobanteFiles?.length && p.file)?1:0);
-    months[key].files += eFiles + cFiles;
-  });
-
-  // Ordenar meses de más reciente a más antiguo
-  const sorted = Object.entries(months).sort((a,b)=>b[0].localeCompare(a[0]));
-
-  el.innerHTML = '<div class="month-list">' + sorted.map(([key, m]) => {
-    const n = m.payments.length;
-    const paid = m.payments.filter(p=>p.status==='pagado').length;
-    const hasFiles = m.files > 0;
-    return `<div class="month-row" onclick="openMonthHistory('${key}')">
-      <div class="month-icon">📅</div>
-      <div class="month-info">
-        <div class="month-label">${m.label}</div>
-        <div class="month-sub">${n} servicio${n!==1?'s':''} · ${paid} pagado${paid!==1?'s':''}${hasFiles?' · 📎 '+m.files+' archivo'+(m.files!==1?'s':''):''}</div>
-      </div>
-      ${m.total>0?`<div class="month-total">$${m.total.toFixed(2)}</div>`:''}
-      <div class="month-arrow">›</div>
-    </div>`;
-  }).join('') + '</div>';
-}
-
-function renderHistoryByService() {
-  const el = document.getElementById('service-list');
-  document.getElementById('hist-month-list').style.display = 'none';
-  document.getElementById('service-list').style.display = 'flex';
-
-  if (payments.length===0) {
-    el.innerHTML = '<div class="no-data">Sin servicios registrados</div>';
-    return;
-  }
-  el.innerHTML = payments.map(p=>{
-    const totalPaid = p.paid_date ? (p.amount||0) : 0;
-    const count = p.paid_date ? 1 : 0;
-    return `<div class="service-row" onclick="openSrvHistory(${p.id})">
+  const el=document.getElementById('service-list');
+  if (payments.length===0){el.innerHTML='<div class="no-data">Sin servicios registrados</div>';return;}
+  el.innerHTML=payments.map(p=>{
+    const count=p.paid_date?1:0;
+    const totalPaid=p.paid_date?(p.amount||0):0;
+    return `<div class="service-row" onclick="openSrvHistory('${p.id}')">
       <div class="srv-icon">${p.icon}</div>
-      <div class="srv-info">
-        <div class="srv-name">${p.name}</div>
-        <div class="srv-count">${count} pago${count!==1?'s':''} registrado${count!==1?'s':''}</div>
-      </div>
+      <div class="srv-info"><div class="srv-name">${p.name}</div><div class="srv-count">${count} pago${count!==1?'s':''} registrado${count!==1?'s':''}</div></div>
       <div class="srv-total">${totalPaid>0?'$'+totalPaid.toFixed(2):'—'}</div>
     </div>`;
   }).join('');
 }
 
-function openMonthHistory(key) {
-  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const paymentsInMonth = payments.filter(p => {
-    if (key === 'sin-fecha') return !p.due && !p.paid_date;
-    const dateStr = p.paid_date || p.due;
-    if (!dateStr) return false;
-    const d = new Date(dateStr + 'T12:00:00');
-    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    return k === key;
-  });
-
-  let label = 'Sin fecha';
-  if (key !== 'sin-fecha') {
-    const [y,m] = key.split('-');
-    label = MESES[parseInt(m)-1] + ' ' + y;
-  }
-
-  document.getElementById('month-history-title').textContent = '📅 ' + label;
-  const content = document.getElementById('month-history-content');
-  const statusLabels = {vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
-
-  if (paymentsInMonth.length===0) {
-    content.innerHTML = '<div class="no-data">Sin pagos en este mes</div>';
-  } else {
-    content.innerHTML = paymentsInMonth.map(p => {
-      const dateRef = p.paid_date || p.due;
-      const dateLabel = dateRef ? formatDate(dateRef) : 'Sin fecha';
-      const eFiles = p.estadoFiles || [];
-      const cFiles = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles : (p.file ? [{data:p.file,name:p.fileName||'Comprobante'}] : []);
-      const hasFiles = eFiles.length > 0 || cFiles.length > 0;
-
-      let filesHTML = '';
-      if (eFiles.length > 0) {
-        filesHTML += `<div class="month-file-section-label">📄 Estado de Cuenta / Planilla</div>`;
-        filesHTML += eFiles.map((f,i) => {
-          const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
-          return `<button class="month-file-btn" onclick="viewFileRaw('${encodeURIComponent(f.data)}','${f.name||'archivo'}')">
-            <span style="font-size:22px">${isImg?'🖼️':'📄'}</span>
-            <span style="flex:1;font-size:12px;font-weight:600;text-align:left;">${f.name||'Archivo '+(i+1)}</span>
-            <span style="color:var(--accent);font-size:12px;font-weight:700;">Ver →</span>
-          </button>`;
-        }).join('');
-      }
-      if (cFiles.length > 0) {
-        filesHTML += `<div class="month-file-section-label">🧾 Comprobante de Pago</div>`;
-        filesHTML += cFiles.map((f,i) => {
-          const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
-          return `<button class="month-file-btn" onclick="viewFileRaw(decodeURIComponent('${encodeURIComponent(f.data)}'),'${f.name||'comprobante'}')">
-            <span style="font-size:22px">${isImg?'🖼️':'📄'}</span>
-            <span style="flex:1;font-size:12px;font-weight:600;text-align:left;">${f.name||'Comprobante '+(i+1)}</span>
-            <span style="color:var(--accent);font-size:12px;font-weight:700;">Ver →</span>
-          </button>`;
-        }).join('');
-      }
-
-      return `<div class="month-payment-card">
-        <div class="month-payment-header">
-          <span class="month-payment-icon">${p.icon}</span>
-          <div style="flex:1;">
-            <div class="month-payment-name">${p.name}</div>
-            <div class="month-payment-meta">${p.category} · ${statusLabels[p.status]||p.status}</div>
-          </div>
-          <div class="month-payment-amount">${p.amount?'$'+Number(p.amount).toFixed(2):'—'}</div>
-        </div>
-        ${p.balance?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📊 Estado de cuenta: <strong style="color:var(--text)">$${Number(p.balance).toFixed(2)}</strong></div>`:''}
-        ${p.cutdate?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">✂️ Fecha de corte: <strong style="color:var(--text)">${formatDate(p.cutdate)}</strong></div>`:''}
-        ${p.due?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📆 Vencimiento: <strong style="color:var(--text)">${formatDate(p.due)}</strong></div>`:''}
-        ${p.notes?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">📝 ${p.notes}</div>`:''}
-        ${hasFiles?`<div class="month-files-wrap">${filesHTML}</div>`:
-          '<div style="font-size:12px;color:var(--muted);margin-top:8px;">Sin archivos adjuntos</div>'}
-      </div>`;
-    }).join('');
-  }
-
-  document.getElementById('month-history-modal').classList.add('open');
-}
-
-function closeMonthHistory() {
-  document.getElementById('month-history-modal').classList.remove('open');
-}
-
-function openSrvHistory(id) {
-  const p = payments.find(x=>x.id===id);
+window.openSrvHistory = function(id) {
+  const p=payments.find(x=>x.id===id);
   if (!p) return;
-  document.getElementById('srv-history-title').textContent = p.icon+' '+p.name;
-  const content = document.getElementById('srv-history-content');
-
+  document.getElementById('srv-history-title').textContent=p.icon+' '+p.name;
+  const content=document.getElementById('srv-history-content');
+  const statusLabels={vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
   if (!p.paid_date && p.status!=='pagado') {
-    content.innerHTML = `<div class="no-data">Sin pagos registrados para este servicio.<br>Marca como pagado para ver el historial.</div>`;
+    content.innerHTML='<div class="no-data">Sin pagos registrados.<br>Marca como pagado para ver el historial.</div>';
   } else {
-    const statusLabels = {vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
-    content.innerHTML = `<div class="history-item">
+    content.innerHTML=`<div class="history-item">
       <div class="hi-left">
-        <div class="hi-date">${p.paid_date ? formatDate(p.paid_date) : (p.due ? formatDate(p.due) : 'Sin fecha')}</div>
+        <div class="hi-date">${p.paid_date?formatDate(p.paid_date):(p.due?formatDate(p.due):'Sin fecha')}</div>
         <div class="hi-status">${statusLabels[p.status]||p.status}</div>
       </div>
       <div class="hi-amount">${p.amount?'$'+Number(p.amount).toFixed(2):'—'}</div>
-    </div>
-    ${p.notes?`<div style="font-size:12px;color:var(--muted);padding:8px 0;">📝 ${p.notes}</div>`:''}`;
+    </div>${p.notes?`<div style="font-size:12px;color:var(--muted);padding:8px 0;">📝 ${p.notes}</div>`:''}`;
   }
-
   document.getElementById('srv-history-modal').classList.add('open');
 }
 
-function formatDate(ds) {
-  const d = new Date(ds+'T12:00:00');
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-}
+function formatDate(ds){const d=new Date(ds+'T12:00:00');return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;}
+window.closeSrvHistory=function(){document.getElementById('srv-history-modal').classList.remove('open');}
 
-function closeSrvHistory() {
-  document.getElementById('srv-history-modal').classList.remove('open');
-}
-
-// ===================== DETAIL =====================
-function openDetail(id) {
-  const p = payments.find(x=>x.id===id);
+// ===== DETAIL =====
+window.openDetail = function(id) {
+  const p=payments.find(x=>x.id===id);
   if (!p) return;
-  detailId = id;
-  document.getElementById('d-icon').textContent = p.icon;
-  document.getElementById('d-name').textContent = p.name;
-  document.getElementById('d-cat').textContent = p.category;
-  document.getElementById('d-amount').textContent = p.amount ? '$'+Number(p.amount).toFixed(2) : '—';
+  detailId=id;
+  document.getElementById('d-icon').textContent=p.icon;
+  document.getElementById('d-name').textContent=p.name;
+  document.getElementById('d-cat').textContent=p.category;
+  document.getElementById('d-amount').textContent=p.amount?'$'+Number(p.amount).toFixed(2):'—';
   const pills={vencido:'🔴 Vencido',proximo:'🟡 Próximo',pendiente:'⚪ Pendiente',pagado:'🟢 Pagado'};
-  document.getElementById('d-status').textContent = pills[p.status]||p.status;
-  document.getElementById('d-due').textContent = p.due ? formatDue(p.due)+' ('+p.due+')' : 'Sin fecha definida';
-
-  const balanceRow = document.getElementById('d-balance-row');
-  if (p.balance) { balanceRow.style.display='flex'; document.getElementById('d-balance').textContent='$'+Number(p.balance).toFixed(2); }
-  else balanceRow.style.display='none';
-
-  const cutdateRow = document.getElementById('d-cutdate-row');
-  if (p.cutdate) { cutdateRow.style.display='flex'; document.getElementById('d-cutdate').textContent=formatDue(p.cutdate)+' ('+p.cutdate+')'; }
-  else cutdateRow.style.display='none';
-
-  const notesRow = document.getElementById('d-notes-row');
-  if (p.notes) { notesRow.style.display='flex'; document.getElementById('d-notes').textContent=p.notes; }
+  document.getElementById('d-status').textContent=pills[p.status]||p.status;
+  document.getElementById('d-due').textContent=p.due?formatDue(p.due)+' ('+p.due+')':'Sin fecha definida';
+  const notesRow=document.getElementById('d-notes-row');
+  if (p.notes){notesRow.style.display='flex';document.getElementById('d-notes').textContent=p.notes;}
   else notesRow.style.display='none';
-
-  // Archivos adjuntos
-  const compWrap = document.getElementById('d-comprobante-wrap');
-  let filesHTML = '';
-  const renderFileSection = (title, files) => {
-    if (!files || files.length === 0) return '';
-    let html = `<div class="detail-files-section"><div class="detail-files-title">${title}</div>`;
-    files.forEach((f, i) => {
-      const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name||'');
-      html += `<div class="detail-file-item" onclick="viewFileInline('${p.id}','${title==='📄 Estado de Cuenta'?'estado':'comprobante'}',${i})">
-        ${isImg ? `<img class="mfi-thumb" src="${f.data}" alt="">` : '<div class="mfi-icon">📄</div>'}
-        <div class="mfi-info"><div class="mfi-name">${f.name||'Archivo'}</div><div class="mfi-size">Toca para ver</div></div>
-        <span style="color:var(--muted);font-size:18px;">›</span>
-      </div>`;
-    });
-    html += '</div>';
-    return html;
-  };
-  // estado de cuenta files
-  filesHTML += renderFileSection('📄 Estado de Cuenta', p.estadoFiles);
-  // comprobante files — también soporta el viejo formato (p.file)
-  const compFiles = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles
-    : (p.file ? [{data:p.file, name:p.fileName||'Comprobante'}] : []);
-  filesHTML += renderFileSection('🧾 Comprobante de Pago', compFiles);
-  compWrap.innerHTML = filesHTML;
-
+  const compWrap=document.getElementById('d-comprobante-wrap');
+  if (p.file) {
+    const isImg=p.fileName&&/\.(jpg|jpeg|png|gif|webp)$/i.test(p.fileName);
+    compWrap.innerHTML=`<div class="comprobante-thumb" onclick="viewComprobante('${p.id}')">
+      ${isImg?`<img src="${p.file}" alt="comprobante">`:'<span style="font-size:32px">📄</span>'}
+      <div class="ct-info"><div class="ct-name">${p.fileName||'Comprobante'}</div><div class="ct-tap">Toca para ver</div></div>
+    </div>`;
+  } else compWrap.innerHTML='';
   document.getElementById('detail-modal').classList.add('open');
 }
 
-function viewComprobante(id) {
-  const p = payments.find(x=>x.id==id);
-  if (!p || !p.file) return;
-  viewFileRaw(p.file, p.fileName||'archivo');
+window.viewComprobante=function(id){
+  const p=payments.find(x=>x.id==id);
+  if (!p||!p.file) return;
+  const isImg=p.fileName&&/\.(jpg|jpeg|png|gif|webp)$/i.test(p.fileName);
+  if (isImg){document.getElementById('img-viewer-src').src=p.file;document.getElementById('img-viewer').classList.add('open');}
+  else{const a=document.createElement('a');a.href=p.file;a.target='_blank';a.click();}
 }
+window.closeImgViewer=function(){document.getElementById('img-viewer').classList.remove('open');}
+window.closeDetailModal=function(){document.getElementById('detail-modal').classList.remove('open');detailId=null;}
 
-function viewFileInline(paymentId, section, idx) {
-  const p = payments.find(x=>x.id==paymentId);
-  if (!p) return;
-  let f;
-  if (section === 'estado') f = p.estadoFiles && p.estadoFiles[idx];
-  else {
-    const arr = (p.comprobanteFiles && p.comprobanteFiles.length) ? p.comprobanteFiles
-      : (p.file ? [{data:p.file, name:p.fileName||'Comprobante'}] : []);
-    f = arr[idx];
-  }
-  if (!f) return;
-  viewFileRaw(f.data, f.name||'archivo');
-}
-
-function viewFileRaw(dataUrl, name) {
-  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(name||'');
-  if (isImg) {
-    document.getElementById('img-viewer-src').src = dataUrl;
-    document.getElementById('img-viewer').classList.add('open');
-  } else {
-    const a = document.createElement('a');
-    a.href = dataUrl; a.target = '_blank'; a.click();
-  }
-}
-
-function closeImgViewer() {
-  document.getElementById('img-viewer').classList.remove('open');
-}
-
-function closeDetailModal() {
-  document.getElementById('detail-modal').classList.remove('open');
-  detailId = null;
-}
-
-function markPaidFromDetail() {
+window.markPaidFromDetail=async function(){
   if (!detailId) return;
-  const p = payments.find(x=>x.id===detailId);
-  if (p) { p.status='pagado'; p.paid_date=new Date().toISOString().split('T')[0]; save(); }
-  closeDetailModal();
-  renderHome();
-  scheduleNotifications();
-  showToast('✅ Marcado como pagado');
+  const p=payments.find(x=>x.id===detailId);
+  if (p){p.status='pagado';p.paid_date=new Date().toISOString().split('T')[0];await saveOneToFirebase(p);}
+  closeDetailModal();renderHome();scheduleNotifications();showToast('✅ Marcado como pagado');
 }
 
-function editFromDetail() {
-  const id = detailId;
-  closeDetailModal();
-  openEditModal(id);
-}
+window.editFromDetail=function(){const id=detailId;closeDetailModal();openEditModal(id);}
 
-// ===================== WHATSAPP =====================
-function shareWhatsApp() {
+// ===== WHATSAPP =====
+window.shareWhatsApp=function(){
   closeDetailModal();
-  const p = payments.find(x=>x.id===detailId) || payments.find(x=>x.id===detailId);
-
-  const vencidos = payments.filter(x=>x.status==='vencido');
-  const proximos = payments.filter(x=>x.status==='proximo');
-  const now = new Date();
+  const vencidos=payments.filter(x=>x.status==='vencido');
+  const proximos=payments.filter(x=>x.status==='proximo');
+  const now=new Date();
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  let msg = `💳 *MisPagos - Resumen ${months[now.getMonth()]} ${now.getFullYear()}*\n\n`;
-
-  if (vencidos.length>0) {
-    msg += `🔴 *VENCIDOS (${vencidos.length}):*\n`;
-    vencidos.forEach(x=>{ msg+=`  • ${x.icon} ${x.name}: ${x.amount?'$'+Number(x.amount).toFixed(2):'sin monto'}\n`; });
-    msg+='\n';
-  }
-  if (proximos.length>0) {
-    msg += `🟡 *PRÓXIMOS A VENCER (${proximos.length}):*\n`;
-    proximos.forEach(x=>{ msg+=`  • ${x.icon} ${x.name}: ${x.amount?'$'+Number(x.amount).toFixed(2):'sin monto'} - ${x.due?formatDue(x.due):''}\n`; });
-    msg+='\n';
-  }
-
-  const total = [...vencidos,...proximos].reduce((s,x)=>s+(x.amount||0),0);
-  msg += `💰 *Total urgente: $${total.toFixed(2)}*`;
-
-  document.getElementById('wa-preview').textContent = msg;
+  let msg=`💳 *MisPagos - Resumen ${months[now.getMonth()]} ${now.getFullYear()}*\n\n`;
+  if (vencidos.length>0){msg+=`🔴 *VENCIDOS (${vencidos.length}):*\n`;vencidos.forEach(x=>{msg+=`  • ${x.icon} ${x.name}: ${x.amount?'$'+Number(x.amount).toFixed(2):'sin monto'}\n`;});msg+='\n';}
+  if (proximos.length>0){msg+=`🟡 *PRÓXIMOS (${proximos.length}):*\n`;proximos.forEach(x=>{msg+=`  • ${x.icon} ${x.name}: ${x.amount?'$'+Number(x.amount).toFixed(2):'sin monto'} - ${x.due?formatDue(x.due):''}\n`;});msg+='\n';}
+  const total=[...vencidos,...proximos].reduce((s,x)=>s+(x.amount||0),0);
+  msg+=`💰 *Total urgente: $${total.toFixed(2)}*`;
+  document.getElementById('wa-preview').textContent=msg;
   document.getElementById('wa-modal').classList.add('open');
-
-  // Store for send
-  window._waMsg = msg;
-  window._waDetailId = detailId;
-  detailId = null;
+  window._waMsg=msg;
 }
+window.sendWhatsApp=function(){window.open('https://wa.me/?text='+encodeURIComponent(window._waMsg||''),'_blank');closeWaModal();}
+window.closeWaModal=function(){document.getElementById('wa-modal').classList.remove('open');}
 
-function sendWhatsApp() {
-  const msg = window._waMsg || '';
-  const url = 'https://wa.me/?text='+encodeURIComponent(msg);
-  window.open(url, '_blank');
-  closeWaModal();
-}
-
-function closeWaModal() {
-  document.getElementById('wa-modal').classList.remove('open');
-}
-
-// ===================== ADD/EDIT MODAL =====================
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = 'Nuevo Pago';
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-amount').value = '';
-  document.getElementById('f-balance').value = '';
-  document.getElementById('f-cutdate').value = '';
-  document.getElementById('f-due').value = '';
-  document.getElementById('f-notes').value = '';
-  document.getElementById('f-category').value = 'Servicios básicos';
-  document.getElementById('btn-delete').style.display = 'none';
-  currentFileData = null; currentFileName = null;
-  resetAllFilePreviews();
+// ===== ADD/EDIT MODAL =====
+window.openAddModal=function(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Nuevo Pago';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-amount').value='';
+  document.getElementById('f-due').value='';
+  document.getElementById('f-notes').value='';
+  document.getElementById('f-category').value='Servicios básicos';
+  document.getElementById('btn-delete').style.display='none';
+  currentFileData=null;currentFileName=null;resetFilePreview();
   document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));
   document.querySelector('.status-btn[data-s="pendiente"]').classList.add('selected');
   renderIconGrid('💧');
   document.getElementById('add-modal').classList.add('open');
 }
 
-function openEditModal(id) {
-  const p = payments.find(x=>x.id===id);
-  if (!p) return;
-  editingId = id;
-  document.getElementById('modal-title').textContent = 'Editar Pago';
-  document.getElementById('f-name').value = p.name;
-  document.getElementById('f-amount').value = p.amount||'';
-  document.getElementById('f-balance').value = p.balance||'';
-  document.getElementById('f-cutdate').value = p.cutdate||'';
-  document.getElementById('f-due').value = p.due||'';
-  document.getElementById('f-notes').value = p.notes||'';
-  document.getElementById('f-category').value = p.category||'Otros';
-  document.getElementById('btn-delete').style.display = 'block';
-  currentFileData = p.file||null;
-  currentFileName = p.fileName||null;
-  estadoFiles = p.estadoFiles ? JSON.parse(JSON.stringify(p.estadoFiles)) : [];
-  comprobanteFiles = p.comprobanteFiles ? JSON.parse(JSON.stringify(p.comprobanteFiles)) : [];
-  // backward compat: si tenia un solo comprobante viejo, migrarlo
-  if (currentFileData && comprobanteFiles.length === 0) {
-    comprobanteFiles = [{data: currentFileData, name: currentFileName||'comprobante', size: 0}];
-  }
-  renderMultiPreview('estado');
-  renderMultiPreview('comprobante');
+function openEditModal(id){
+  const p=payments.find(x=>x.id===id);if (!p) return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Editar Pago';
+  document.getElementById('f-name').value=p.name;
+  document.getElementById('f-amount').value=p.amount||'';
+  document.getElementById('f-due').value=p.due||'';
+  document.getElementById('f-notes').value=p.notes||'';
+  document.getElementById('f-category').value=p.category||'Otros';
+  document.getElementById('btn-delete').style.display='block';
+  currentFileData=p.file||null;currentFileName=p.fileName||null;
+  resetFilePreview();
+  if (currentFileData) showFilePreview(currentFileName,null,currentFileData);
   document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));
-  const sb = document.querySelector(`.status-btn[data-s="${p.status}"]`);
-  if (sb) sb.classList.add('selected');
+  const sb=document.querySelector(`.status-btn[data-s="${p.status}"]`);if (sb) sb.classList.add('selected');
   renderIconGrid(p.icon);
   document.getElementById('add-modal').classList.add('open');
 }
 
-function renderIconGrid(selected) {
-  document.getElementById('icon-grid').innerHTML = ICONS.map(ic=>
-    `<button class="icon-btn ${ic===selected?'selected':''}" onclick="selectIcon(this,'${ic}')">${ic}</button>`
-  ).join('');
+function renderIconGrid(selected){
+  document.getElementById('icon-grid').innerHTML=ICONS.map(ic=>`<button class="icon-btn ${ic===selected?'selected':''}" onclick="selectIcon(this,'${ic}')">${ic}</button>`).join('');
 }
 
-function selectIcon(el) {
-  document.querySelectorAll('.icon-btn').forEach(b=>b.classList.remove('selected'));
-  el.classList.add('selected');
-}
+window.selectIcon=function(el){document.querySelectorAll('.icon-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');}
+window.selectStatus=function(el){document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');}
+window.closeModal=function(){document.getElementById('add-modal').classList.remove('open');editingId=null;currentFileData=null;currentFileName=null;}
 
-function selectStatus(el) {
-  document.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('selected'));
-  el.classList.add('selected');
-}
+// ===== FILE HANDLING =====
+window.openCamera=function(){document.getElementById('f-camera').click();}
+window.onCameraCapture=function(e){const f=e.target.files[0];if(f) processFile(f);}
+window.onFileSelected=function(e){const f=e.target.files[0];if(f) processFile(f);}
 
-function closeModal() {
-  document.getElementById('add-modal').classList.remove('open');
-  editingId = null;
-  currentFileData = null; currentFileName = null;
-  estadoFiles = []; comprobanteFiles = [];
-  renderMultiPreview('estado'); renderMultiPreview('comprobante');
-}
-
-// ===================== FILE HANDLING (MULTI) =====================
-let estadoFiles = [];       // [{data, name, size}]
-let comprobanteFiles = [];  // [{data, name, size}]
-let cameraTarget = 'comprobante';
-
-function triggerUpload(inputId) {
-  document.getElementById(inputId).click();
-}
-
-function openCameraFor(section) {
-  cameraTarget = section;
-  document.getElementById('f-camera').click();
-}
-
-function onCameraCapture(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  processMultiFile(file, cameraTarget);
-  e.target.value = '';
-}
-
-function onMultiFileSelected(e, section) {
-  const files = Array.from(e.target.files);
-  files.forEach(f => processMultiFile(f, section));
-  e.target.value = '';
-}
-
-function processMultiFile(file, section) {
-  const arr = section === 'estado' ? estadoFiles : comprobanteFiles;
-  if (arr.length >= 2) { showToast('❌ Máximo 2 archivos por sección'); return; }
-  if (file.size > 5*1024*1024) { showToast('❌ Archivo muy grande (máx 5MB)'); return; }
-  const reader = new FileReader();
-  reader.onload = ev => {
-    arr.push({ data: ev.target.result, name: file.name, size: file.size });
-    renderMultiPreview(section);
-  };
+function processFile(file){
+  if (file.size>5*1024*1024){showToast('❌ Archivo muy grande (máx 5MB)');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{currentFileData=ev.target.result;currentFileName=file.name;showFilePreview(file.name,file.size,ev.target.result);};
   reader.readAsDataURL(file);
 }
 
-function renderMultiPreview(section) {
-  const arr = section === 'estado' ? estadoFiles : comprobanteFiles;
-  const wrap = document.getElementById(section + '-preview-wrap');
-  const uploadArea = document.getElementById(section + '-upload-area');
-  wrap.innerHTML = arr.map((f, i) => {
-    const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name);
-    const sizeText = (f.size/1024).toFixed(0) + 'KB';
-    return `<div class="multi-file-item">
-      ${isImg ? `<img class="mfi-thumb" src="${f.data}" alt="">` : '<div class="mfi-icon">📄</div>'}
-      <div class="mfi-info">
-        <div class="mfi-name">${f.name}</div>
-        <div class="mfi-size">${sizeText}</div>
-      </div>
-      <button class="mfi-remove" onclick="removeMultiFile('${section}',${i})">✕</button>
-    </div>`;
-  }).join('');
-  uploadArea.style.display = arr.length >= 2 ? 'none' : 'block';
+function showFilePreview(name,size,dataUrl){
+  const wrap=document.getElementById('file-preview-wrap');
+  const isImg=name&&/\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+  wrap.style.display='block';
+  wrap.innerHTML=`<div class="file-preview">
+    ${isImg?`<img src="${dataUrl}" alt="">`:'<div class="fp-icon">📄</div>'}
+    <div class="fp-info"><div class="fp-name">${name}</div><div class="fp-size">${size?(size/1024).toFixed(0)+'KB':''}</div></div>
+    <button class="fp-remove" onclick="removeFile()">✕</button>
+  </div>`;
+  document.getElementById('file-upload-area').style.display='none';
 }
 
-function removeMultiFile(section, idx) {
-  if (section === 'estado') estadoFiles.splice(idx, 1);
-  else comprobanteFiles.splice(idx, 1);
-  renderMultiPreview(section);
+window.removeFile=function(){currentFileData=null;currentFileName=null;resetFilePreview();}
+
+function resetFilePreview(){
+  document.getElementById('file-preview-wrap').style.display='none';
+  document.getElementById('file-preview-wrap').innerHTML='';
+  document.getElementById('file-upload-area').style.display='block';
+  document.getElementById('f-file').value='';
 }
 
-function resetAllFilePreviews() {
-  estadoFiles = []; comprobanteFiles = [];
-  renderMultiPreview('estado'); renderMultiPreview('comprobante');
-  document.getElementById('f-estado').value = '';
-  document.getElementById('f-comprobante').value = '';
-}
-
-// legacy compat
-function resetFilePreview() { resetAllFilePreviews(); }
-
-function savePayment() {
-  const name = document.getElementById('f-name').value.trim();
-  if (!name) { showToast('❌ Ingresa un nombre'); return; }
-  const icon = document.querySelector('.icon-btn.selected')?.textContent||'💳';
-  const amount = parseFloat(document.getElementById('f-amount').value)||null;
-  const balance = parseFloat(document.getElementById('f-balance').value)||null;
-  const cutdate = document.getElementById('f-cutdate').value||null;
-  const due = document.getElementById('f-due').value||null;
-  const notes = document.getElementById('f-notes').value.trim();
-  const category = document.getElementById('f-category').value;
-  const status = document.querySelector('.status-btn.selected')?.dataset.s||'pendiente';
+window.savePayment=async function(){
+  const name=document.getElementById('f-name').value.trim();
+  if (!name){showToast('❌ Ingresa un nombre');return;}
+  const icon=document.querySelector('.icon-btn.selected')?.textContent||'💳';
+  const amount=parseFloat(document.getElementById('f-amount').value)||null;
+  const due=document.getElementById('f-due').value||null;
+  const notes=document.getElementById('f-notes').value.trim();
+  const category=document.getElementById('f-category').value;
+  const status=document.querySelector('.status-btn.selected')?.dataset.s||'pendiente';
 
   if (editingId) {
-    const p = payments.find(x=>x.id===editingId);
-    if (p) Object.assign(p,{icon,name,amount,balance,cutdate,due,notes,category,status,
-      estadoFiles:[...estadoFiles], comprobanteFiles:[...comprobanteFiles],
-      file:comprobanteFiles[0]?.data||null, fileName:comprobanteFiles[0]?.name||null});
+    const p=payments.find(x=>x.id===editingId);
+    if (p) Object.assign(p,{icon,name,amount,due,notes,category,status,file:currentFileData,fileName:currentFileName});
+    await saveOneToFirebase(p);
   } else {
-    payments.push({id:Date.now(),icon,name,amount,balance,cutdate,due,notes,category,status,paid_date:null,
-      estadoFiles:[...estadoFiles], comprobanteFiles:[...comprobanteFiles],
-      file:comprobanteFiles[0]?.data||null, fileName:comprobanteFiles[0]?.name||null});
+    const newP={id:'pay_'+Date.now(),icon,name,amount,due,notes,category,status,paid_date:null,file:currentFileData,fileName:currentFileName};
+    payments.push(newP);
+    await saveOneToFirebase(newP);
   }
-  save();
-  closeModal();
-  renderHome();
-  scheduleNotifications();
-  showToast('✅ Guardado correctamente');
+  closeModal();renderHome();scheduleNotifications();
 }
 
-function deletePayment() {
+window.deletePayment=async function(){
   if (!editingId) return;
   if (!confirm('¿Eliminar este pago?')) return;
-  payments = payments.filter(p=>p.id!==editingId);
-  save();
-  closeModal();
-  renderHome();
-  showToast('🗑️ Eliminado');
+  await deleteFromFirebase(editingId);
+  payments=payments.filter(p=>p.id!==editingId);
+  closeModal();renderHome();showToast('🗑️ Eliminado');
 }
 
-// ===================== NOTIFICATIONS =====================
-function openNotifModal() { document.getElementById('notif-modal').classList.add('open'); }
-function closeNotifModal() { document.getElementById('notif-modal').classList.remove('open'); }
+// ===== NOTIFICATIONS =====
+window.openNotifModal=function(){document.getElementById('notif-modal').classList.add('open');}
+window.closeNotifModal=function(){document.getElementById('notif-modal').classList.remove('open');}
 
-async function requestNotifications() {
-  if (!('Notification' in window)) {
-    document.getElementById('notif-status').textContent = '⚠️ Tu navegador no soporta notificaciones. Instala la app desde Safari primero.';
-    return;
-  }
-  const perm = await Notification.requestPermission();
-  if (perm==='granted') {
-    document.getElementById('notif-status').textContent = '✅ Notificaciones activadas';
-    document.getElementById('notif-desc').textContent = '✅ Activadas';
-    scheduleNotifications();
-    showToast('🔔 Notificaciones activadas');
+window.requestNotifications=async function(){
+  if (!('Notification' in window)){document.getElementById('notif-status').textContent='⚠️ Instala la app en Safari primero';return;}
+  const perm=await Notification.requestPermission();
+  if (perm==='granted'){
+    document.getElementById('notif-status').textContent='✅ Notificaciones activadas';
+    document.getElementById('notif-desc').textContent='✅ Activadas';
+    scheduleNotifications();showToast('🔔 Notificaciones activadas');
   } else {
-    document.getElementById('notif-status').textContent = '❌ Permiso denegado. Ve a Ajustes iPhone → Notificaciones → Safari';
+    document.getElementById('notif-status').textContent='❌ Denegado. Ve a Ajustes iPhone → Notificaciones';
   }
 }
 
-function scheduleNotifications() {
-  if (!('Notification' in window) || Notification.permission!=='granted') return;
-  const now = new Date();
+function scheduleNotifications(){
+  if (!('Notification' in window)||Notification.permission!=='granted') return;
+  const now=new Date();
   payments.forEach(p=>{
-    if (!p.due || p.status==='pagado') return;
-    const due = new Date(p.due+'T09:00:00');
-    const diff = (due-now)/(1000*60*60*24);
-    if (diff>0 && diff<=3) {
+    if (!p.due||p.status==='pagado') return;
+    const due=new Date(p.due+'T09:00:00');
+    const diff=(due-now)/(1000*60*60*24);
+    if (diff>0&&diff<=3){
       setTimeout(()=>{
-        new Notification('💳 MisPagos', {
-          body: `${p.icon} ${p.name}: vence en ${Math.ceil(diff)} día${Math.ceil(diff)>1?'s':''}${p.amount?' - $'+Number(p.amount).toFixed(2):''}`,
-          icon: '/favicon.ico',
-          tag: 'pago-'+p.id
-        });
-      }, 100);
+        new Notification('💳 MisPagos',{body:`${p.icon} ${p.name}: vence en ${Math.ceil(diff)} día${Math.ceil(diff)>1?'s':''}${p.amount?' - $'+Number(p.amount).toFixed(2):''}`,tag:'pago-'+p.id});
+      },200);
     }
   });
 }
 
-// ===================== FACE ID / TOUCH ID =====================
-function updateBiometricUI() {
-  const enabled = localStorage.getItem(BIOMETRIC_KEY)==='true';
-  document.getElementById('biometric-desc').textContent = enabled ? '✅ Activado' : 'Toca para configurar';
-  document.getElementById('biometric-arrow').textContent = enabled ? '✓' : '›';
+// ===== FACE ID =====
+window.toggleBiometric=async function(){
+  if (!window.PublicKeyCredential){showToast('⚠️ Face ID no disponible');return;}
+  const enabled=localStorage.getItem(BIOMETRIC_KEY)==='true';
+  if (enabled){localStorage.removeItem(BIOMETRIC_KEY);updateBiometricUI();showToast('🔓 Face ID desactivado');}
+  else{
+    try{
+      const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (available){localStorage.setItem(BIOMETRIC_KEY,'true');updateBiometricUI();showToast('🔒 Face ID activado');}
+      else showToast('⚠️ Face ID no disponible');
+    }catch(e){showToast('⚠️ No se pudo activar');}
+  }
+}
+function updateBiometricUI(){
+  const enabled=localStorage.getItem(BIOMETRIC_KEY)==='true';
+  document.getElementById('biometric-desc').textContent=enabled?'✅ Activado':'Toca para configurar';
+  document.getElementById('biometric-arrow').textContent=enabled?'✓':'›';
 }
 
-async function toggleBiometric() {
-  if (!window.PublicKeyCredential) {
-    showToast('⚠️ Face ID no disponible en este dispositivo');
-    return;
-  }
-  const enabled = localStorage.getItem(BIOMETRIC_KEY)==='true';
-  if (enabled) {
-    localStorage.removeItem(BIOMETRIC_KEY);
-    updateBiometricUI();
-    showToast('🔓 Face ID desactivado');
-  } else {
-    try {
-      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      if (available) {
-        localStorage.setItem(BIOMETRIC_KEY,'true');
-        updateBiometricUI();
-        showToast('🔒 Face ID activado');
-      } else {
-        showToast('⚠️ Face ID no disponible en este dispositivo');
+// ===== EXPORT/IMPORT =====
+window.exportData=function(){
+  const json=JSON.stringify(payments.map(p=>({...p,file:undefined,fileName:undefined})),null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='mispagos_backup.json';a.click();
+  URL.revokeObjectURL(url);showToast('📤 Backup exportado');
+}
+
+window.openImportModal=function(){document.getElementById('import-modal').classList.add('open');}
+window.closeImportModal=function(){document.getElementById('import-modal').classList.remove('open');}
+
+window.importData=async function(e){
+  const file=e.target.files[0];if (!file) return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if (Array.isArray(data)){
+        // Assign new Firebase-compatible IDs if needed
+        payments=data.map((p,i)=>({...p,id:p.id||'pay_'+Date.now()+'_'+i,file:null,fileName:null}));
+        await saveAllToFirebase();
+        closeImportModal();renderHome();
+        showToast('✅ '+payments.length+' pagos importados a Firebase');
       }
-    } catch(e) {
-      showToast('⚠️ No se pudo activar Face ID');
-    }
-  }
-}
-
-// ===================== GOOGLE SHEETS =====================
-function openSheetsModal() {
-  document.getElementById('sheets-url').value = sheetsUrl;
-  document.getElementById('sheets-modal').classList.add('open');
-}
-function closeSheetsModal() { document.getElementById('sheets-modal').classList.remove('open'); }
-
-async function testSheetsConnection() {
-  const url = document.getElementById('sheets-url').value.trim();
-  if (!url) { showToast('❌ Ingresa la URL'); return; }
-  if (!url.includes('script.google.com')) {
-    document.getElementById('sheets-status-display').innerHTML = '<div class="sheets-status disconnected">❌ La URL debe ser de script.google.com</div>';
-    return;
-  }
-  document.getElementById('sheets-status-display').innerHTML = '<div class="sheets-status disconnected">⏳ Probando conexión...</div>';
-  // Google Apps Script bloquea fetch directo (CORS), usamos script tag para GET
-  try {
-    await new Promise((resolve, reject) => {
-      const callbackName = 'gsTest_' + Date.now();
-      const timeoutId = setTimeout(() => {
-        delete window[callbackName];
-        // Even timeout means URL format is valid — CORS is expected
-        resolve();
-      }, 4000);
-      // Try no-cors POST as a ping
-      fetch(url + '?ping=1', { method:'GET', mode:'no-cors' })
-        .then(() => { clearTimeout(timeoutId); resolve(); })
-        .catch(() => { clearTimeout(timeoutId); resolve(); }); // no-cors always "succeeds"
-    });
-    document.getElementById('sheets-status-display').innerHTML = '<div class="sheets-status connected">✅ URL válida — Google Scripts listo. Guarda para sincronizar.</div>';
-  } catch(e) {
-    document.getElementById('sheets-status-display').innerHTML = '<div class="sheets-status disconnected">❌ URL inválida</div>';
-  }
-}
-
-function saveSheetsConfig() {
-  const url = document.getElementById('sheets-url').value.trim();
-  if (!url) { showToast('❌ Ingresa la URL'); return; }
-  if (!url.includes('script.google.com')) { showToast('❌ URL inválida'); return; }
-  sheetsUrl = url;
-  localStorage.setItem(SHEETS_KEY, url);
-  document.getElementById('sheets-desc').textContent = '✅ Conectado';
-  closeSheetsModal();
-  syncToSheets();
-  showToast('📊 Google Sheets configurado ✅');
-}
-
-async function syncToSheets() {
-  if (!sheetsUrl) return;
-  try {
-    const data = payments.map(p=>({
-      id:p.id, name:p.name, amount:p.amount||'', status:p.status,
-      due:p.due||'', category:p.category, notes:p.notes||'',
-      paid_date:p.paid_date||'', icon:p.icon
-    }));
-    // Google Apps Script requiere no-cors desde browser
-    // Usamos fetch con mode no-cors — el POST llega pero no podemos leer respuesta (normal)
-    fetch(sheetsUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify(data)
-    });
-    // También enviamos via GET con parámetro para compatibilidad
-    const encoded = encodeURIComponent(JSON.stringify(data));
-    if (encoded.length < 7000) { // GET tiene límite de URL
-      fetch(sheetsUrl + '?data=' + encoded, { mode: 'no-cors' });
-    }
-  } catch(e) { /* silent — no-cors no lanza errores */ }
-}
-
-// ===================== EXPORT/IMPORT =====================
-function exportData() {
-  const json = JSON.stringify(payments.map(p=>({...p, file:undefined, fileName:undefined})),null,2);
-  const blob = new Blob([json],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='mispagos_backup.json'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('📤 Backup exportado');
-}
-
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev=>{
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (Array.isArray(data)) {
-        payments = data;
-        save();
-        renderHome();
-        showToast('✅ Datos importados');
-      }
-    } catch { showToast('❌ Archivo inválido'); }
+    }catch{showToast('❌ Archivo inválido');}
   };
   reader.readAsText(file);
 }
 
-// ===================== TOAST =====================
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+// ===== TOAST =====
+window.showToast=function(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-// ===================== CLOSE MODALS ON OVERLAY =====================
-['add-modal','detail-modal','srv-history-modal','month-history-modal','sheets-modal','notif-modal','wa-modal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){
-    if (e.target===this) this.classList.remove('open');
-  });
+// ===== CLOSE MODALS ON OVERLAY =====
+['add-modal','detail-modal','srv-history-modal','notif-modal','wa-modal','import-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 });
 
-// ===================== START =====================
-load().then(() => {
-  renderHome();
-  scheduleNotifications();
-});
+// ===== START =====
+setFbStatus('disconnected');
+updateBiometricUI();
+startListening();
+
 </script>
 </body>
 </html>

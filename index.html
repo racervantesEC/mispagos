@@ -1182,14 +1182,16 @@ window.showToast=function(msg){
 }
 
 // ===== CLOSE MODALS ON OVERLAY =====
-['add-modal','detail-modal','srv-history-modal','notif-modal','wa-modal','import-modal'].forEach(id=>{
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
-});
+try {
+  ['add-modal','detail-modal','srv-history-modal','notif-modal','wa-modal','import-modal'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+  });
+} catch(e) { console.warn('Modal listeners:', e); }
 
 // ===== START =====
-setFbStatus('disconnected');
-updateBiometricUI();
+try { setFbStatus('disconnected'); } catch(e){}
+try { updateBiometricUI(); } catch(e){}
 startListening();
 
 </script>
